@@ -2,8 +2,6 @@ from math import exp
 # from numba import njit
 from numpy import zeros, full, copy, trapz
 # from mpmath import polylog, nstr
-from torch import from_numpy
-
 
 def myRK4(func,y0,tSpan,paramaters):
     '''This function provides a sovler for any first order system using RK4 fixed time step algorithm.

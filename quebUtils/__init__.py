@@ -1,4 +1,4 @@
-from . import ChebyshevND
+from . import chebyshevND
 from . import integrators
 from . import orbital
 from . import plot

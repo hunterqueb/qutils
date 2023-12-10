@@ -1,9 +1,22 @@
 # quebUtils
 
-quebUtils is my personal collection of helping functions to the user premade complex functions used in my area of engineering.
+quebUtils is my personal collection of complex functions I've written in Python over the years.
 
-to install run:
-'''
+to install run in bash:
+```
 $ chmod +x install.sh
 $ ./install.sh
-'''
+```
+or just
+```
+python install .
+```
+
+files placed in the other folder are useful files that have not been sorted and do not have a nice place to live
+
+## dependencies
+ - numpy
+ - scipy
+ - matplotlib
+ - numba
+ - their might be others
