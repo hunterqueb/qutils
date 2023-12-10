@@ -1,0 +1,1 @@
+double evaluateCheb(double minMax[], double alpha[], double evalPts[]);
