@@ -1,0 +1,4 @@
+*/__pycache__
+dist
+_skbuild
+quebUtils.egg-info
