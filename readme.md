@@ -9,7 +9,7 @@ $ ./install.sh
 ```
 or just
 ```
-python install .
+pip install .
 ```
 
 files placed in the other folder are useful files that have not been sorted and do not have a nice place to live

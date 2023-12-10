@@ -1,4 +1,4 @@
 #!/bin/bash
 
 set -e
-python install .
+pip install .
