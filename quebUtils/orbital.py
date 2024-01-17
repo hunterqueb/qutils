@@ -2,7 +2,7 @@
 import numpy as np
 from numba import njit, prange
 
-from quebutils.integrators import *
+from quebUtils.integrators import *
 
 def SolveKeplerEq(M,e,eps=1e-6 ,N=5):
 

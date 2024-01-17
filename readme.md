@@ -19,4 +19,5 @@ files placed in the other folder are useful files that have not been sorted and 
  - scipy
  - matplotlib
  - numba
- - their might be others
+ - pytorch
+ - torchinfo
