@@ -21,3 +21,4 @@ files placed in the other folder are useful files that have not been sorted and 
  - numba
  - pytorch
  - torchinfo
+ - skbuild
