@@ -1,8 +1,52 @@
 # need dataloader, 
 
 import numpy as np
+import torch
 
-def findDecimalAccuracy(testingDataOutput,y_pred):
+def findDecAcc(testingDataOutput,y_pred):
+    '''
+    Function to find the decimal accuracy of a prediction from a NN compared to the testing data output using a modified Llyod Heuristic
+
+    Support for LSTM networks using a lookback window, or standard NN output that im used to
+    
+    Input: testingDataOutput - tensor that defines the true output that the NN should be estimating
+           y_pred - tensor that defines the estimated output that the NN generates
+    Output: prints to screen the average of decimal accuracy states and returns the array
+
+    Created: 1/19/2024
+    Author: Hunter Quebedeaux
+    '''
+
+    # check if the input tensors are in LSTM lookback format
+    if testingDataOutput.dim() == 3: 
+        testingDataOutput = testingDataOutput[:,-1,:]   
+        y_pred = y_pred[:,-1,:]
+    else:
+        pass
+
+    # get some constants to find problem dimension and the number of testing sets
+    # initialize the array that will store decimal accuracy
+            # finds the decimal accuracy based on the LLyod Heuristic
+            # av = np.log10(np.abs(testingDataOutput[i][j]/(testingDataOutput[i][j]-y_pred[i][j])))
+    decAcc = torch.abs(torch.log10(torch.abs(1/(testingDataOutput-y_pred))))
+            # if infinity, assign the highest accuracy possible for float64s
+            # value of infinity is due to testingDataOutput - y_pred = 0 == log(someNumber/0) == infinity
+    inf_mask = torch.isinf(decAcc)
+    decAcc[inf_mask] = 15
+
+    # initialize the fwd and bwd average lists
+    avg = decAcc.mean(axis=0).cpu().numpy()
+
+    problemDim = len(avg)
+    for i in range(problemDim):
+            print('State {} Decimal Accuracy Avg: {}'.format(i+1,avg[i]))
+    
+    # return values
+    return avg
+
+
+
+def __findDecimalAccuracyOLD(testingDataOutput,y_pred):
     '''
     Function to find the decimal accuracy of a prediction from a NN compared to the testing data output using a modified Llyod Heuristic
     Input: testingDataOutput - numpy array that defines the true output that the NN should be estimating
