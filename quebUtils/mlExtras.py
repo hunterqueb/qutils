@@ -3,7 +3,7 @@
 import numpy as np
 import torch
 
-def findDecAcc(testingDataOutput,y_pred):
+def findDecAcc(testingDataOutput,y_pred,printOut=True):
     '''
     Function to find the decimal accuracy of a prediction from a NN compared to the testing data output using a modified Llyod Heuristic
 
@@ -37,12 +37,13 @@ def findDecAcc(testingDataOutput,y_pred):
     # initialize the fwd and bwd average lists
     avg = decAcc.mean(axis=0).cpu().numpy()
 
-    problemDim = len(avg)
-    for i in range(problemDim):
-            print('State {} Decimal Accuracy Avg: {}'.format(i+1,avg[i]))
+    if printOut == True:
+        problemDim = len(avg)
+        for i in range(problemDim):
+                print('State {} Decimal Accuracy Avg: {}'.format(i+1,avg[i]))
     
     # return values
-    return avg
+    return avg, (testingDataOutput-y_pred).cpu().numpy()
 
 
 
