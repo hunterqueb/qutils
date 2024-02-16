@@ -2,6 +2,20 @@
 import numpy as np
 from numba import njit, prange
 
+def dim2NonDim4(array,DU = 6378.1 ,TU = 806.80415):
+
+    array = array / DU
+    array[:,2:4] = array[:,2:4] * TU
+
+    return array
+
+
+def nonDim2Dim4(array,DU = 6378.1 ,TU = 806.80415):
+    array = array * DU
+    array[:,2:4] = array[:,2:4] / TU
+
+    return array
+
 def SolveKeplerEq(M,e,eps=1e-6 ,N=5):
 
     # Inputs :-
