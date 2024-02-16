@@ -4,8 +4,8 @@ from skbuild import setup
 from setuptools import find_packages
 
 setup(
-      name="quebutils",
-      version="0.1",
+      name="quebUtils",
+      version="0.2",
       description="General utilities for engineering research in Python.",
       author='Hunter Quebedeaux',
       packages=find_packages(),
