@@ -1,6 +1,6 @@
 import numpy as np
 
-from quebutils.orbitalElements import SolveKeplerEq
+from quebUtils.orbital import SolveKeplerEq
 
 def lagrangePlanEq(t, elements, mu=398600):
 # elements = [OMEGA i omega a e M0]
