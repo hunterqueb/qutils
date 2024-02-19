@@ -2,7 +2,7 @@
 import numpy as np
 from numba import njit, prange
 
-def dim2NonDim4(array,DU = 6378.1 ,TU = 806.80415):
+def dim2NonDim4(array,DU = 6378.1 ,TU = ((6378.1)**3 / 3.96800e14)**0.5):
 
     array = array / DU
     array[:,2:4] = array[:,2:4] * TU
@@ -93,7 +93,7 @@ def ECI2OE(r0,v0,mu):
 
 
 def OE2ECI(OE,t, mu = 398600):
-
+ 
     Omega = OE[0]
     i = OE[1]
     omega = OE[2]
