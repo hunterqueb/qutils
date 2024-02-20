@@ -16,6 +16,47 @@ def nonDim2Dim4(array,DU = 6378.1 ,TU = 806.80415):
 
     return array
 
+def genTimestep4EquiTrueAnom(numPoints,numPeriods,e,T):
+    '''
+    Generates a 1d vector of the time points corresponding to a linear spacing in the true anomaly.
+    Only tested for 2d planar orbits
+    Input: numPoints - number of equispaced true anomaly points
+           numPeriods - number of periods to generate
+           e - eccentricty of orbit
+           T - period of orbit (can be dimensional or nondimensional)
+    Output: tEval - 1d numpy array of time points
+    
+
+    '''
+    trueAnom = np.linspace(0,2*np.pi,numPoints)
+    # linspace f 0 to 360 
+
+    # find E from f
+    # 3.13b curtis
+    E = 2*np.arctan(np.sqrt((1-e)/(1+e))*np.tan(trueAnom/2))
+
+    # find Me from E and e
+    # 3.14 curtis
+    Me = E - np.multiply(e,np.sin(E))
+
+    # ensure the angles lies on the the correct range from 0 to 2pi
+    Me[int(numPoints/2):] = Me[int(numPoints/2):] + 2*np.pi
+
+    # find t from Me and period
+    # 3.15 from curtis
+    tEval = Me/(2*np.pi) * T
+
+    # construct time eval matrix
+    tEvalM = np.zeros((numPoints,numPeriods))
+    tEvalM[:,0] = tEval
+
+    # compute for arbitrary periods
+    for i in range(numPeriods-1):
+        tEvalM[:,i+1] = tEvalM[:,i] + T
+        tEval = np.concatenate((tEval,tEvalM[1:,i+1]))
+    
+    return tEval
+
 def SolveKeplerEq(M,e,eps=1e-6 ,N=5):
 
     # Inputs :-
@@ -91,7 +132,6 @@ def ECI2OE(r0,v0,mu):
 
     return (Omega,i,omega,a, e, M0, P)
 
-
 def OE2ECI(OE,t, mu = 398600):
  
     Omega = OE[0]
@@ -129,7 +169,6 @@ def OE2ECI(OE,t, mu = 398600):
     v = np.matmul(C.T, np.array([xd, yd, 0]))
 
     return np.concatenate((r, v))
-
 
 def getOrbitElements(r0,rdot0,mu):
     '''
