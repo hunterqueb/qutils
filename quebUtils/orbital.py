@@ -89,7 +89,7 @@ def SolveKeplerEq(M,e,eps=1e-6 ,N=5):
 
     return E,Feval
 
-def ECI2OE(r0,v0,mu):
+def ECI2OE(r0,v0,mu = 398600):
 
     # modified to output elements as [Omega i omega a e M0 P] to align with
     # lagrange planetary equations
@@ -130,15 +130,15 @@ def ECI2OE(r0,v0,mu):
 
     P = 2*np.pi/n
 
-    return (Omega,i,omega,a, e, M0, P)
+    return np.array((a, e, i, Omega, omega, M0, P))
 
 def OE2ECI(OE,t, mu = 398600):
  
-    Omega = OE[0]
-    i = OE[1]
-    omega = OE[2]
-    a = OE[3]
-    e = OE[4]
+    a = OE[0]
+    e = OE[1]
+    i = OE[2]
+    Omega = OE[3]
+    omega = OE[4]
     M0 = OE[5]
 
     COmega_3 = np.array([[np.cos(Omega), np.sin(Omega), 0],
@@ -170,7 +170,7 @@ def OE2ECI(OE,t, mu = 398600):
 
     return np.concatenate((r, v))
 
-def getOrbitElements(r0,rdot0,mu):
+def _getOrbitElements(r0,rdot0,mu):
     '''
     Takes a cartesian state and converts it to the classical orbital elements
     
