@@ -1,6 +1,6 @@
 import numpy as np
 
-from quebUtils.orbital import SolveKeplerEq
+from qutils.orbital import SolveKeplerEq
 
 def lagrangePlanEq(t, elements, mu=398600):
 # elements = [OMEGA i omega a e M0]
@@ -89,7 +89,7 @@ def nondim_cr3bp(t, Y,mu):
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
     from scipy.integrate import solve_ivp
-    from quebutils.dynSys.dim6 import *
+    from qutils.dynSys.dim6 import *
     m = np.zeros(3)
     m[0] = 5.967e23
     m[1] = 7.35e22

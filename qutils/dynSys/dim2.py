@@ -104,7 +104,7 @@ def nonlinearPendulumODEnjit(t,y,p):
 
 
 if __name__ == "__main__":
-    from quebutils.integrators import myRK4 
+    from qutils.integrators import myRK4 
     import time
     import matplotlib.pyplot as plt
 

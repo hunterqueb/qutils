@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import math
 import random
 
-from quebutils.integrators import ode45
+from qutils.integrators import ode45
 
 
 # data size set that define amount of data sets we will generate to train the network

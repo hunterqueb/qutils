@@ -303,7 +303,7 @@ def jacobiConstant(Y):
 if __name__ == "__main__":
     from scipy.integrate import solve_ivp
     import matplotlib.pyplot as plt
-    from quebutils.dynSys.dim6 import lagrangePlanEq
+    from qutils.dynSys.dim6 import lagrangePlanEq
     r0 = np.array([6780,100,200]); #km
     rdot0 = np.array([-0.1,8.1,-0.2]) #km/s
     mu = 398600

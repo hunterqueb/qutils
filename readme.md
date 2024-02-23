@@ -1,6 +1,6 @@
-# quebUtils
+# qutils
 
-quebUtils is my personal collection of complex functions I've written in Python over the years.
+qutils is my personal collection of complex functions I've written in Python over the years.
 
 to install run in bash:
 ```
