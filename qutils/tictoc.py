@@ -8,4 +8,7 @@ class timer():
     def toc(self): 
         print("\n\tElapsed time is {:.4f} seconds.".format(time.perf_counter() - self.ticTime))
     def tocVal(self):
-        return time.perf_counter() - self.ticTime
+        self.tocTime = time.perf_counter() - self.ticTime
+        return self.tocTime
+    def getTocTime(self):
+        return self.tocTime
