@@ -96,9 +96,21 @@ def plotOrbitPredictions(yTruth,yTest,epoch=None,t=None):
         plt.close()
         
 def plotSolutionErrors(yTruth,yTest,t,idxLen):
-    plt.figure()
-    for i in range(idxLen):
-        plt.plot(t,(yTruth-yTest)[:,i],label='State {}'.format(i+1))
+    error = (yTruth-yTest)
+    num_cols = error.shape[1]
+    num_rows = int(num_cols / 2)
+
+    fig, axes = plt.subplots(num_rows, 2, figsize=(12, 6))
+    axes = axes.ravel()
+
+    for i, ax in enumerate(axes[:num_cols]):
+        ax.plot(t, error[:, i], label=f'State {i+1}')
+        ax.set_title(f'Solution Error (State {i+1})')
+        ax.set_xlabel('t')
+        ax.set_ylabel('Error')
+        ax.legend()
+        ax.grid()
+
     plt.title('Solution Error')
     plt.xlabel('t')
     plt.ylabel('x')
