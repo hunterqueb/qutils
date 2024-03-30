@@ -104,15 +104,11 @@ def plotSolutionErrors(yTruth,yTest,t,idxLen):
     axes = axes.ravel()
 
     for i, ax in enumerate(axes[:num_cols]):
-        ax.plot(t, error[:, i], label=f'State {i+1}')
+        ax.plot(t, error[:, i])
         ax.set_title(f'Solution Error (State {i+1})')
         ax.set_xlabel('t')
-        ax.set_ylabel('Error')
-        ax.legend()
+        if i < num_rows:
+            ax.set_ylabel('Error [km]')
+        else:
+            ax.set_ylabel('Error [km/s]')
         ax.grid()
-
-    plt.title('Solution Error')
-    plt.xlabel('t')
-    plt.ylabel('x')
-    plt.legend()
-    plt.grid()
