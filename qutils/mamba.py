@@ -1,3 +1,8 @@
+'''
+Credit to https://github.com/alxndrTL/mamba.py for implementation
+'''
+
+
 import math
 from dataclasses import dataclass
 from typing import Union
@@ -24,7 +29,6 @@ First, we expand x into (B, L, 2*ED) (where E is usually 2) and split it into x 
 Then, we apply the short 1d conv to x, followed by an activation function (silu), then the SSM.
 We then multiply it by silu(z).
 See Figure 3 of the paper (page 8) for a visual representation of a MambaBlock.
-https://github.com/alxndrTL/mamba.py
 """
 
 @dataclass
