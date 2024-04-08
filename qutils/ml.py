@@ -1,6 +1,7 @@
 from torchinfo import summary
 from datetime import datetime
 from torch import nn
+import torch.nn.functional as F
 import torch
 import os
 import sys
@@ -78,86 +79,81 @@ def loadModel(modelBase,model_filename,modelMode='eval'):
 
     return modelBase
 
+class SelfAttentionLayer(nn.Module):
+   def __init__(self, feature_size):
+       super(SelfAttentionLayer, self).__init__()
+       self.feature_size = feature_size
+
+       # Linear transformations for Q, K, V from the same source
+       self.key = nn.Linear(feature_size, feature_size)
+       self.query = nn.Linear(feature_size, feature_size)
+       self.value = nn.Linear(feature_size, feature_size)
+
+   def forward(self, x, mask=None):
+       # Apply linear transformations
+       keys = self.key(x)
+       queries = self.query(x)
+       values = self.value(x)
+
+       # Scaled dot-product attention
+       scores = torch.matmul(queries, keys.transpose(-2, -1)) / torch.sqrt(torch.tensor(self.feature_size, dtype=torch.float32))
+
+       # Apply mask (if provided)
+       if mask is not None:
+           scores = scores.masked_fill(mask == 0, -1e9)
+
+       # Apply softmax
+       attention_weights = F.softmax(scores, dim=-1)
+
+       # Multiply weights with values
+       output = torch.matmul(attention_weights, values)
+
+       return output, attention_weights
+
+
+class LSTMSelfAttentionNetwork(nn.Module):
+    def __init__(self, input_dim, hidden_dim, output_dim, num_layers, dropout_value, heads=1):
+        super(LSTMSelfAttentionNetwork, self).__init__()
+
+        # LSTM layer
+        self.lstm = nn.LSTM(input_size=input_dim, hidden_size=hidden_dim, num_layers=num_layers, batch_first=True,dropout=dropout_value)
+
+        # Self-attention layer
+        self.self_attention = SelfAttentionLayer(hidden_dim)
+
+        # Fully connected layer
+        self.fc = nn.Linear(hidden_dim, output_dim)
+
+    def forward(self, x):
+        # Pass data through LSTM layer
+        lstm_out, lstm_hidden = self.lstm(x)
+
+        # Pass data through self-attention layer
+        attention_out, attention_weights = self.self_attention(lstm_out,mask=None)
+
+        # Pass data through fully connected layer
+        final_out = self.fc(attention_out)
+
+        return final_out
+
 class LSTM(nn.Module):
-    '''
-    simple two layers LSTM network with one fully connected output layer
-
-    parameters: input_size - input size of network
-                hidden_size - hidden size of each hidden layer
-                output_size - output size of the last layer
-    
-    returns pytorch model upon instantiation
-    '''
-    def __init__(self,input_size:int,hidden_size:int,output_size:int):
+    def __init__(self, input_dim, hidden_dim, output_dim, num_layers, dropout_value, heads=1):
         super(LSTM, self).__init__()
-        self.lstm1 = nn.LSTMCell(input_size, hidden_size)
-        self.lstm2 = nn.LSTMCell(hidden_size, hidden_size)
-        self.linear = nn.Linear(hidden_size, output_size)
-        self.input_size = input_size
-        self.hidden_size = hidden_size
-        self.output_size = output_size
 
-    def forward(self, input, future = 0):
-        outputs = []
-        h_t = torch.zeros(input.size(0), self.hidden_size, dtype=torch.double)
-        c_t = torch.zeros(input.size(0), self.hidden_size, dtype=torch.double)
-        h_t2 = torch.zeros(input.size(0), self.hidden_size, dtype=torch.double)
-        c_t2 = torch.zeros(input.size(0), self.hidden_size, dtype=torch.double)
+        # LSTM layer
+        self.lstm = nn.LSTM(input_size=input_dim, hidden_size=hidden_dim, num_layers=num_layers, batch_first=True,dropout=dropout_value)
 
-        for input_t in input.split(1, dim=1):
-            h_t, c_t = self.lstm1(input_t, (h_t, c_t))
-            h_t2, c_t2 = self.lstm2(h_t, (h_t2, c_t2))
-            output = self.linear(h_t2)
-            outputs += [output]
-        for i in range(future):
-            h_t, c_t = self.lstm1(output, (h_t, c_t))
-            h_t2, c_t2 = self.lstm2(h_t, (h_t2, c_t2))
-            output = self.linear(h_t2)
-            outputs += [output]
-        outputs = torch.cat(outputs, dim=1)
-        return outputs
+        # Fully connected layer
+        self.fc = nn.Linear(hidden_dim, output_dim)
 
-class LSTMNew(nn.Module):
-    '''
-    simple two layers LSTM network with two fully connected output layers
+    def forward(self, x):
+        # Pass data through LSTM layer
+        lstm_out, _ = self.lstm(x)
 
-    parameters: input_size - input size of network
-                hidden_size - hidden size of each hidden layer
-                output_size - output size of the last layer
-    
-    returns pytorch model upon instantiation
-    '''
-    def __init__(self,input_size:int,hidden_size:int,output_size:int):
-        super(LSTMNew, self).__init__()
-        self.lstm1 = nn.LSTMCell(input_size, hidden_size)
-        self.lstm2 = nn.LSTMCell(hidden_size, hidden_size)
-        self.linear1 = nn.Linear(hidden_size, hidden_size)  # First fully connected layer
-        self.linear2 = nn.Linear(hidden_size, output_size)  # Second fully connected layer
-        self.input_size = input_size
-        self.hidden_size = hidden_size
-        self.output_size = output_size
+        # Pass data through fully connected layer
+        final_out = self.fc(lstm_out)
 
-    def forward(self, input, future = 0):
-        outputs = []
-        h_t = torch.zeros(input.size(0), self.hidden_size, dtype=torch.double)
-        c_t = torch.zeros(input.size(0), self.hidden_size, dtype=torch.double)
-        h_t2 = torch.zeros(input.size(0), self.hidden_size, dtype=torch.double)
-        c_t2 = torch.zeros(input.size(0), self.hidden_size, dtype=torch.double)
-
-        for input_t in input.split(1, dim=1):
-            h_t, c_t = self.lstm1(input_t, (h_t, c_t))
-            h_t2, c_t2 = self.lstm2(h_t, (h_t2, c_t2))
-            output = self.linear(h_t2)
-            outputs += [output]
-        for i in range(future):
-            h_t, c_t = self.lstm1(output, (h_t, c_t))
-            h_t2, c_t2 = self.lstm2(h_t, (h_t2, c_t2))
-            output = self.linear1(h_t2)  # Use the new first fully connected layer
-            output = self.linear2(output)  # Use the new second fully connected layer
-            outputs += [output]
-        outputs = torch.cat(outputs, dim=1)
-        return outputs
-
+        return final_out
 
 def transferLSTM(pretrainedModel,newModel):
     '''
@@ -176,9 +172,3 @@ def transferLSTM(pretrainedModel,newModel):
         param.requires_grad = False
 
     return newModel
-
-if __name__ == "__main__":
-    from torchinfo import summary
-
-    model = LSTM(10000,5000,10000)
-    summary(model)
