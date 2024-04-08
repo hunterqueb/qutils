@@ -6,6 +6,30 @@ import torch
 import os
 import sys
 
+def getDevice():
+    is_cuda = torch.cuda.is_available()
+    # torch.backends.mps.is_available() checks for metal support, used in nightly build so handled expection incase its run on different version
+    
+    # right now disable mps - doesnt really work
+    try:
+        is_mps = torch.backends.mps.is_available()
+        is_mps = False
+    except:
+        is_mps = False
+    
+    # If we have a GPU available, we'll set our device to GPU. We'll use this device variable later in our code.
+    if is_cuda:
+        device = torch.device("cuda")
+        print("GPU is available")
+    elif is_mps:
+        device = torch.device("mps")
+        print('Metal GPU is available')
+    else:
+        device = torch.device("cpu")
+        print("GPU not available, CPU used")
+    
+    return device
+
 def saveModel(model,input_size=None):
     '''
     Takes a pytorch model and saves the model floats,
