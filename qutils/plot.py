@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 
 def plotOrbitPhasePredictions(yTruth,legend=None):
-    plt.figure()
     plt.plot(yTruth[:,0], yTruth[:,1],label=legend)
     plt.plot(0,0,'ko')
     plt.title('Orbit Solution')
@@ -95,7 +94,7 @@ def plotOrbitPredictions(yTruth,yTest,epoch=None,t=None):
         plt.savefig('predict/predict%d.png' % epoch)
         plt.close()
         
-def plotSolutionErrors(yTruth,yTest,t,idxLen):
+def plotSolutionErrors(yTruth,yTest,t,idxLen=None):
     error = (yTruth-yTest)
     num_cols = error.shape[1]
     num_rows = int(num_cols / 2)
