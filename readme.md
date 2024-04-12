@@ -22,3 +22,4 @@ files placed in the other folder are useful files that have not been sorted and 
  - pytorch
  - torchinfo
  - skbuild
+ - snakeviz

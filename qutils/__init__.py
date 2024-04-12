@@ -6,3 +6,4 @@ from . import tictoc
 from . import ml
 from . import mlExtras
 from . import mamba
+from . import qProfile
