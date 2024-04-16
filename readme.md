@@ -23,3 +23,4 @@ files placed in the other folder are useful files that have not been sorted and 
  - torchinfo
  - skbuild
  - snakeviz
+ - memory_profiler

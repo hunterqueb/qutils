@@ -4,6 +4,12 @@ from numpy import zeros, full, copy, trapz
 # from mpmath import polylog, nstr
 from scipy.integrate import solve_ivp
 
+try:
+    profile  # Check if the decorator is already defined (when running with memory_profiler)
+except NameError:
+    def profile(func):  # Define a no-op `profile` decorator if it's not defined
+        return func
+
 def myRK4(func,y0,tSpan,paramaters):
     '''This function provides a sovler for any first order system using RK4 fixed time step algorithm.
 
@@ -104,6 +110,7 @@ def myRK8(func,y0,tSpan,paramaters):
         y[i] = y[i-1] + h/840*(41*k_1+27*k_4+272*k_5+27*k_6+216*k_7+216*k_9+41*k_10)
     return y
 
+@profile
 def ode45(fun,tspan,y0,t_eval=None,rtol = 1e-8,atol = 1e-8):
     '''
     wrapper for scipy rk45 function

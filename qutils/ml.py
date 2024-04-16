@@ -103,6 +103,24 @@ def loadModel(modelBase,model_filename,modelMode='eval'):
 
     return modelBase
 
+def printModelParmSize(model):
+    total_params = 0
+    total_memory = 0
+
+    for param in model.parameters():
+        # Number of parameters
+        param_count = param.numel()
+        total_params += param_count
+        # Memory usage in bytes (assuming the parameters are stored as floats, typically 32 bits/4 bytes each)
+        param_memory = param_count * param.element_size()
+        total_memory += param_memory
+
+    print("\n==========================================================================================")
+    print(f"Total parameters: {total_params}")
+    print(f"Total memory (bytes): {total_memory}")
+    print(f"Total memory (MB): {total_memory / (1024 ** 2)}")
+    print("==========================================================================================")
+
 class SelfAttentionLayer(nn.Module):
    def __init__(self, feature_size):
        super(SelfAttentionLayer, self).__init__()
