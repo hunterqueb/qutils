@@ -1,10 +1,11 @@
 import cProfile
 import subprocess
 
-def runPerformanceProfiling(script, output):
+def runPerformanceProfiling(script, output, snakeviz = True):
     cProfile.run(f"exec(open('{script}.py').read())", filename=f"profilingData/{output}.dat")
-    subprocess.run(['snakeviz', f"profilingData/{output}.dat"])
-
+    if snakeviz:
+        subprocess.run(['snakeviz', f"profilingData/{output}.dat"])
+        
 def runMemoryProfiling(script):
     # Construct the command to run the Python script with memory_profiler
     command = ['python', '-m', 'memory_profiler', script]
