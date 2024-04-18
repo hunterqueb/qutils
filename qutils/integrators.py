@@ -148,7 +148,7 @@ def ode1412(fun,tspan,y0,t_eval=None,rtol=1e-14, atol=1e-14):
         dt = t_eval[1] - t_eval[0]
     else:
         dt = None
-    system = de.OdeSystem(fun,y0=y0,t=tspan,dt=dt)
+    system = de.OdeSystem(fun,y0=y0,dense_output = True,t=tspan,dt=dt)
     system.method = "RK1412"
     system.integrate()
     return system.t, system.y
