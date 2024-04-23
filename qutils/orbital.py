@@ -16,6 +16,13 @@ def nonDim2Dim4(array,DU = 6378.1 ,TU = 806.80415):
 
     return array
 
+def nonDim2Dim6(array,DU = 6378.1 ,TU = 806.80415):
+    array = array * DU
+    array[:,3:6] = array[:,3:6] / TU
+
+    return array
+
+
 def genTimestep4EquiTrueAnom(numPoints,numPeriods,e,T):
     '''
     Generates a 1d vector of the time points corresponding to a linear spacing in the true anomaly.
