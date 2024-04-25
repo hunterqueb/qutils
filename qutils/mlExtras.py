@@ -9,16 +9,22 @@ def findDecAcc(testingDataOutput,y_pred,printOut=True):
 
     Support for LSTM networks using a lookback window, or standard NN output that im used to
     
-    Input: testingDataOutput - tensor that defines the true output that the NN should be estimating
-           y_pred - tensor that defines the estimated output that the NN generates
+    Input: testingDataOutput - tensor or numpy array that defines the true output that the NN should be estimating
+           y_pred - tensor or numpy array that defines the estimated output that the NN generates
+           both inputs must be of the same type
     Output: prints to screen the average of decimal accuracy states and returns the array
 
     Created: 1/19/2024
     Author: Hunter Quebedeaux
     '''
 
+    if isinstance(y_pred, np.ndarray):
+        arrayType = 'numpy'
+    elif isinstance(y_pred, torch.Tensor):
+        arrayType = 'torch'
+    
     # check if the input tensors are in LSTM lookback format
-    if testingDataOutput.dim() == 3: 
+    if len(testingDataOutput.shape) == 3: 
         testingDataOutput = testingDataOutput[:,-1,:]   
         y_pred = y_pred[:,-1,:]
     else:
@@ -28,14 +34,24 @@ def findDecAcc(testingDataOutput,y_pred,printOut=True):
     # initialize the array that will store decimal accuracy
             # finds the decimal accuracy based on the LLyod Heuristic
             # av = np.log10(np.abs(testingDataOutput[i][j]/(testingDataOutput[i][j]-y_pred[i][j])))
-    decAcc = torch.abs(torch.log10(torch.abs(1/(testingDataOutput-y_pred))))
+    if arrayType == 'torch':
+        decAcc = torch.abs(torch.log10(torch.abs(1/(testingDataOutput-y_pred))))
+        inf_mask = torch.isinf(decAcc)
+
+    if arrayType == 'numpy':
+        decAcc = np.abs(np.log10(np.abs(1/(testingDataOutput-y_pred))))
+        inf_mask = np.isinf(decAcc)
             # if infinity, assign the highest accuracy possible for float64s
             # value of infinity is due to testingDataOutput - y_pred = 0 == log(someNumber/0) == infinity
-    inf_mask = torch.isinf(decAcc)
     decAcc[inf_mask] = 15
 
     # initialize the fwd and bwd average lists
-    avg = decAcc.mean(axis=0).cpu().numpy()
+    if arrayType == 'torch':
+        avg = decAcc.mean(axis=0).cpu().numpy()
+        error = (testingDataOutput-y_pred).cpu().numpy()
+    if arrayType == 'numpy':
+        avg = decAcc.mean(axis=0)
+        error = (testingDataOutput-y_pred)
 
     if printOut == True:
         problemDim = len(avg)
@@ -43,7 +59,7 @@ def findDecAcc(testingDataOutput,y_pred,printOut=True):
                 print('State {} Decimal Accuracy Avg: {}'.format(i+1,avg[i]))
     
     # return values
-    return avg, (testingDataOutput-y_pred).cpu().numpy()
+    return avg, error
 
 def generateTrajectoryPrediction(train_plot,test_plot):
     '''

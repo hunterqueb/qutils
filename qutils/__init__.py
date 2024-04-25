@@ -8,3 +8,5 @@ from . import mlExtras
 from . import mamba
 from . import mambaAtt
 from . import qProfile
+
+from . import trialSolution

@@ -129,3 +129,16 @@ def plotSolutionErrors(yTruth,yTest,t,idxLen=None):
         else:
             ax.set_ylabel('Error [km/s]')
         ax.grid()
+
+def plotEnergy(yTruth,yTest,t,energyFunc,xLabel = 'Time (TU)',yLabel = 'Energy'):
+    ETruth = energyFunc(yTruth)
+    ETest = energyFunc(yTest)
+
+    plt.figure()
+    plt.plot(t,ETruth,label='Truth')
+    plt.plot(t,ETest,label='NN')
+    plt.title('Conserved Quantity')
+    plt.xlabel(xLabel)
+    plt.ylabel(yLabel)
+    plt.legend()
+    plt.grid()
