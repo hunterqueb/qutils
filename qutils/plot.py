@@ -1,5 +1,9 @@
 import matplotlib.pyplot as plt
 
+def plot3dOrbit(yTruth,yTest,earth=True,moon=True):
+    return
+
+
 def plotOrbitPhasePredictions(yTruth,legend=None):
     plt.plot(yTruth[:,0], yTruth[:,1],label=legend)
     plt.plot(0,0,'ko')
