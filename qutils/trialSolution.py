@@ -25,6 +25,12 @@ class phi():
         self.jacobiConst = jacobiConst
         self.isScaleSystem = scaleSystem
         self.KC = True
+
+    def setOrbitEnergy(self,orbitEnergy):
+        self.orbitEnergy = orbitEnergy
+    def setJacobiConst(self,jacobiConst):
+        self.jacobiConst = jacobiConst
+    
     def setTruth(self, yTruth):
         self.yTruth = yTruth
 
