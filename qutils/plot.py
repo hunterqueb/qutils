@@ -1,7 +1,51 @@
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+import numpy as np
 
-def plot3dOrbit(yTruth,yTest,earth=True,moon=True):
-    return
+def plot3dCR3BPPredictions(yTruth, yTest, epoch=None, t=None, L=4, earth=True, moon=True):
+    if L == False or L == None:
+        L = 0
+    if L == 1:
+        L = [0.8369154703225321, 0, 0]
+    if L == 2:
+        L = [1.1556818961296604, 0, 0]
+    if L == 3:
+        L = [-1.0050626166357435, 0, 0]
+    if L == 4:
+        L = [0.48784941, 0.86602540, 0]
+    if L == 5:
+        L = [0.48784941, -0.86602540, 0]
+
+    m_1 = 5.974E24  # Mass of Earth in kg
+    m_2 = 7.348E22  # Mass of Moon in kg
+    mu = m_2 / (m_1 + m_2)
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    ax.plot(yTruth[:, 0], yTruth[:, 1], yTruth[:, 2], label='Truth')
+    ax.plot(yTest[:, 0], yTest[:, 1], yTest[:, 2], label='NN')
+
+    if earth:
+        ax.plot(-mu, 0, 0, 'ko', label='Earth')
+    if moon:
+        ax.plot(1 - mu, 0, 0, 'go', label='Moon')
+
+    if L is not 0:
+        ax.plot([L[0]], [L[1]], [L[2]], 'd', color='grey', label='Lagrange Point')
+
+    ax.set_title('Cislunar CR3BP')
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('z')
+    limits = np.array([getattr(ax, f'get_{axis}lim')() for axis in 'xyz'])
+    ax.set_box_aspect(np.ptp(limits, axis=1))
+    ax.legend()
+    ax.grid(True)
+
+    if epoch is not None:
+        plt.savefig(f'predict/predict{epoch}.png')
+        plt.close()
 
 
 def plotOrbitPhasePredictions(yTruth,legend=None):
@@ -53,7 +97,8 @@ def plotCR3BPPhasePredictions(yTruth,yTest,epoch=None,t=None,L = 4,earth=True,mo
         plt.plot(-mu if x_idx == 0 else 0, 0 if y_idx in [1, 2] else -mu, 'ko', label='Earth')
     if moon:
         plt.plot((1 - mu) if x_idx == 0 else 0, 0 if y_idx in [1, 2] else (1 - mu), 'go', label='Moon')
-    plt.plot(L[x_idx], L[y_idx], 'd', color='grey', label='Lagrange Point')
+    if L is not 0:
+        plt.plot(L[x_idx], L[y_idx], 'd', color='grey', label='Lagrange Point')
 
     plt.title(f'Planar CR3BP: {title}')
     plt.xlabel(['x', 'z'][x_idx // 2])
