@@ -1,6 +1,9 @@
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
+import matplotlib as mpl
+
+mpl.rcParams['text.usetex'] = True
 
 def plot3dCR3BPPredictions(yTruth, yTest, epoch=None, t=None, L=4, earth=True, moon=True):
     if L == False or L == None:
@@ -161,22 +164,31 @@ def plotOrbitPredictions(yTruth,yTest,epoch=None,t=None):
         plt.savefig('predict/predict%d.png' % epoch)
         plt.close()
         
-def plotSolutionErrors(yTruth,yTest,t,idxLen=None):
-    error = (yTruth-yTest)
+def plotSolutionErrors(yTruth, yTest, t, idxLen=None, units='km',stateLabel=('x','y','z')):
+    error = (yTruth - yTest)
     num_cols = error.shape[1]
     num_rows = int(num_cols / 2)
-
-    fig, axes = plt.subplots(num_rows, 2, figsize=(12, 6))
+    
+    fig, axes = plt.subplots(2, num_rows, figsize=(12, 6))  # Change the subplots dimensions
     axes = axes.ravel()
+    
+    # handle the units labeling automatically - if DU, then use TU, if not append string with '/s'
+    posLabel = units
+    if units == 'DU':
+        velLabel = 'TU'
+    else:
+        velLabel = units + '/s'
+    
+    state_labels = ['x', 'y', 'z', 'xdot', 'ydot', 'zdot']
 
     for i, ax in enumerate(axes[:num_cols]):
         ax.plot(t, error[:, i])
-        ax.set_title(f'Solution Error (State {i+1})')
+        ax.set_title(fr'$\mathrm{{Solution\ Error\ }} ({state_labels[i]})$', fontsize=12)
         ax.set_xlabel('t')
         if i < num_rows:
-            ax.set_ylabel('Error [km]')
+            ax.set_ylabel('Error ['+ posLabel +']')
         else:
-            ax.set_ylabel('Error [km/s]')
+            ax.set_ylabel('Error ['+ velLabel +']')
         ax.grid()
 
 def plotEnergy(yTruth,yTest,t,energyFunc,xLabel = 'Time (TU)',yLabel = 'Energy'):
