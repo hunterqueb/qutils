@@ -15,13 +15,5 @@ pip install .
 files placed in the other folder are useful files that have not been sorted and do not have a nice place to live
 
 ## dependencies
- - numpy
- - scipy
- - matplotlib
- - numba
- - desolver
- - pytorch
- - torchinfo
- - skbuild
- - snakeviz
- - memory_profiler
+
+found in requirements.txt

@@ -1,0 +1,11 @@
+numpy
+scipy
+matplotlib
+pandas
+numba
+desolver
+torch
+torchinfo
+scikit-build
+snakeviz
+memory_profiler

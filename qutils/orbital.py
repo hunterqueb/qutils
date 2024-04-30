@@ -1,6 +1,7 @@
-
+import pandas as pd
 import numpy as np
 from numba import njit, prange
+from pkg_resources import resource_filename
 
 def dim2NonDim4(array,DU = 6378.1 ,TU = ((6378.1)**3 / 3.96800e14)**0.5):
 
@@ -22,6 +23,54 @@ def nonDim2Dim6(array,DU = 6378.1 ,TU = 806.80415):
 
     return array
 
+class orbitInitialConditions():
+    def __init__(self,x0,y0,z0,vx0,vy0,vz0,T,id=None,scaled=True):
+        self.x0 = x0
+        self.y0 = y0
+        self.z0 = z0
+        self.vx0 = vx0
+        self.vy0 = vy0
+        self.vz0 = vz0
+        self.T = T
+        self.scaled = scaled
+        self.id = id
+
+def returnCR3BPIC(family:str,L=4,regime='cislunar',stable=True):
+    '''
+    avaiable familes: butterfly, halo L1-3, longPeriod L4-5, shortPeriod L4-5
+    '''
+
+    fileLocation = 'CR3BP_ICs/'
+
+    if family == 'butterfly':
+        fileName = regime + '_'+ family + '.csv'
+    else:
+        fileName = regime + '_' + family + '_L' + str(L) + '.csv'
+    filepath = resource_filename('qutils', fileLocation+fileName)
+
+    data = pd.read_csv(filepath)
+    mask = (data.iloc[:, 10] >= 0.999999) & (data.iloc[:, 10] <= 1.00001)
+    filtered_data = data[mask]
+
+    if not filtered_data.empty:
+        random_row = filtered_data.sample()
+
+        x0 = random_row.iloc[0, 1]
+        y0 = random_row.iloc[0, 2]
+        z0 = random_row.iloc[0, 3]
+
+        vx0 = random_row.iloc[0, 4]
+        vy0 = random_row.iloc[0, 5]
+        vz0 = random_row.iloc[0, 6]
+
+        T = random_row.iloc[0, 8]
+        
+        orbitID = random_row.iloc[0,0]
+
+        return orbitInitialConditions(x0,y0,z0,vx0,vy0,vz0,T,orbitID) 
+    else:
+        print("No rows found with a stability index within the range [0.999999, 1.00001].")
+        return None
 
 def genTimestep4EquiTrueAnom(numPoints,numPeriods,e,T):
     '''
