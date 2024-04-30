@@ -24,7 +24,7 @@ def nonDim2Dim6(array,DU = 6378.1 ,TU = 806.80415):
     return array
 
 class orbitInitialConditions():
-    def __init__(self,x0,y0,z0,vx0,vy0,vz0,T,id=None,scaled=True):
+    def __init__(self,x0,y0,z0,vx0,vy0,vz0,T,family=None,id=None,scaled=True):
         self.x0 = x0
         self.y0 = y0
         self.z0 = z0
@@ -33,24 +33,45 @@ class orbitInitialConditions():
         self.vz0 = vz0
         self.T = T
         self.scaled = scaled
+
+        self.family = family
         self.id = id
 
-def returnCR3BPIC(family:str,L=4,regime='cislunar',stable=True):
+        self.r_0 = np.array((self.x0, self.y0,self.z0))
+        self.v_0 = np.array((self.vx0, self.vy0,self.vz0))
+
+        self.IC = np.hstack((self.r_0, self.v_0))
+
+    def __call__(self):
+        if self.family is not None and self.id is not None:
+            print('Orbit Family: ' + self.family + ' -- id: '+ str(self.id))
+
+        return self.IC,self.T
+
+def returnCR3BPIC(family:str,L=4,id=None,regime='cislunar',stable=True):
     '''
-    avaiable familes: butterfly, halo L1-3, longPeriod L4-5, shortPeriod L4-5
+    avaiable familes: butterfly, dragonfly, (both northern), halo L1-3, longPeriod L4-5, shortPeriod L4-5
     '''
 
     fileLocation = 'CR3BP_ICs/'
 
-    if family == 'butterfly':
+    if family == 'butterfly' or family == 'dragonfly':
         fileName = regime + '_'+ family + '.csv'
     else:
-        fileName = regime + '_' + family + '_L' + str(L) + '.csv'
+        family = family + '_L' + str(L)
+        fileName = regime + '_' + family + '.csv'
     filepath = resource_filename('qutils', fileLocation+fileName)
 
     data = pd.read_csv(filepath)
-    mask = (data.iloc[:, 10] >= 0.999999) & (data.iloc[:, 10] <= 1.00001)
-    filtered_data = data[mask]
+
+    if id is not None:
+        id = int(id)
+        filtered_data = data.loc[data['Id '] == id]
+    elif stable:
+        mask = (data.iloc[:, 10] >= 0.999999) & (data.iloc[:, 10] <= 1.00001)
+        filtered_data = data[mask]
+    else:
+        filtered_data = data
 
     if not filtered_data.empty:
         random_row = filtered_data.sample()
@@ -67,7 +88,7 @@ def returnCR3BPIC(family:str,L=4,regime='cislunar',stable=True):
         
         orbitID = random_row.iloc[0,0]
 
-        return orbitInitialConditions(x0,y0,z0,vx0,vy0,vz0,T,orbitID) 
+        return orbitInitialConditions(x0,y0,z0,vx0,vy0,vz0,T,family,orbitID) 
     else:
         print("No rows found with a stability index within the range [0.999999, 1.00001].")
         return None
