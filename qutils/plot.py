@@ -1,9 +1,6 @@
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
-import matplotlib as mpl
-
-mpl.rcParams['text.usetex'] = True
 
 def plot3dCR3BPPredictions(yTruth, yTest, epoch=None, t=None, L=4, earth=True, moon=True):
     if L == False or L == None:
@@ -117,7 +114,7 @@ def plotCR3BPPhasePredictions(yTruth,yTest,epoch=None,t=None,L = 4,earth=True,mo
         plt.close()
 
 def plotOrbitPredictions(yTruth,yTest,epoch=None,t=None):
-    fig, axes = plt.subplots(nrows=2, ncols=2)
+    fig, axes = plt.subplots(nrows=2, ncols=2,layout='constrained')
 
     # Plot the data in each subplot
     axes[0, 0].plot(t, yTruth[:,0],label = 'Truth')
@@ -164,12 +161,12 @@ def plotOrbitPredictions(yTruth,yTest,epoch=None,t=None):
         plt.savefig('predict/predict%d.png' % epoch)
         plt.close()
         
-def plotSolutionErrors(yTruth, yTest, t, idxLen=None, units='km',stateLabel=('x','y','z')):
+def plotSolutionErrors(yTruth, yTest, t, idxLen=None, units='km',states = ('x', 'y', 'z')):
     error = (yTruth - yTest)
     num_cols = error.shape[1]
     num_rows = int(num_cols / 2)
     
-    fig, axes = plt.subplots(2, num_rows, figsize=(12, 6))  # Change the subplots dimensions
+    fig, axes = plt.subplots(2, num_rows, figsize=(12, 6),layout='constrained')  # Change the subplots dimensions
     axes = axes.ravel()
     
     # handle the units labeling automatically - if DU, then use TU, if not append string with '/s'
@@ -179,16 +176,25 @@ def plotSolutionErrors(yTruth, yTest, t, idxLen=None, units='km',stateLabel=('x'
     else:
         velLabel = units + '/s'
     
-    state_labels = ['x', 'y', 'z', 'xdot', 'ydot', 'zdot']
+    # automatically generate the state title labels for titling the plots
+    velStates = []
+    for i in range(len(states)):
+        velStates.append('\dot{'+states[i]+'}')
+    state_labels = [states,velStates]
 
+    numPos = 0
+    numVel = 0
     for i, ax in enumerate(axes[:num_cols]):
         ax.plot(t, error[:, i])
-        ax.set_title(fr'$\mathrm{{Solution\ Error\ }} ({state_labels[i]})$', fontsize=12)
         ax.set_xlabel('t')
         if i < num_rows:
             ax.set_ylabel('Error ['+ posLabel +']')
+            ax.set_title(fr'$\mathrm{{Solution\ Error\ }} ({state_labels[0][numPos]})$', fontsize=10)
+            numPos = numPos + 1
         else:
             ax.set_ylabel('Error ['+ velLabel +']')
+            ax.set_title(fr'$\mathrm{{Solution\ Error\ }} ({state_labels[1][numVel]})$', fontsize=10)
+            numVel = numVel + 1
         ax.grid()
 
 def plotEnergy(yTruth,yTest,t,energyFunc,xLabel = 'Time (TU)',yLabel = 'Energy'):
