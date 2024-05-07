@@ -50,7 +50,7 @@ class orbitInitialConditions():
 
 def returnCR3BPIC(family:str,L=4,id=None,regime='cislunar',stable=True):
     '''
-    avaiable familes: butterfly, dragonfly, (both northern), halo L1-3, longPeriod L4-5, shortPeriod L4-5
+    avaiable cislunar familes: butterfly, dragonfly, (both northern), halo L1-3, longPeriod L4-5, shortPeriod L4-5
     '''
 
     fileLocation = 'CR3BP_ICs/'
