@@ -3,7 +3,6 @@ from math import exp
 from numpy import zeros, full, copy, trapz
 # from mpmath import polylog, nstr
 from scipy.integrate import solve_ivp
-import desolver as de
 
 
 try:
@@ -138,21 +137,23 @@ def ode85(fun,tspan,y0,t_eval=None,rtol = 1e-8,atol = 1e-8):
 
     return t, y
 
-@profile
-def ode1412(fun,tspan,y0,t_eval=None,rtol=1e-15, atol=1e-15):
-    '''
-    NOT WORKING AS INTENDED -- dense output is not working as intended. does not interpolate between steps even though its goes through the interpolation functions!
-    I suspect that its not working because of how the step size calc happens, instead of doing the interpolation between the steps at the end?
-    cant say for sure...
+# import desolver as de
 
-    wrapper for desolver integration function - an 14th order solver with 12th order error and adaptive step size
-    outputs in the same format as the matlab function, a tuple of t and y reshapes to be more like matlab function
-    '''
-    if t_eval.any():
-        dt = t_eval[1] - t_eval[0]
-    else:
-        dt = None
-    system = de.OdeSystem(fun,y0=y0,dense_output = True,t=tspan,dt=dt,atol=atol,rtol=rtol)
-    system.method = "RK1412"
-    system.integrate()
-    return system.t, system.y
+# @profile
+# def ode1412(fun,tspan,y0,t_eval=None,rtol=1e-15, atol=1e-15):
+#     '''
+#     NOT WORKING AS INTENDED -- dense output is not working as intended. does not interpolate between steps even though its goes through the interpolation functions!
+#     I suspect that its not working because of how the step size calc happens, instead of doing the interpolation between the steps at the end?
+#     cant say for sure...
+
+#     wrapper for desolver integration function - an 14th order solver with 12th order error and adaptive step size
+#     outputs in the same format as the matlab function, a tuple of t and y reshapes to be more like matlab function
+#     '''
+#     if t_eval.any():
+#         dt = t_eval[1] - t_eval[0]
+#     else:
+#         dt = None
+#     system = de.OdeSystem(fun,y0=y0,dense_output = True,t=tspan,dt=dt,atol=atol,rtol=rtol)
+#     system.method = "RK1412"
+#     system.integrate()
+#     return system.t, system.y
