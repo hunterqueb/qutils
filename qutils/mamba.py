@@ -13,6 +13,11 @@ import torch.nn.functional as F
 
 from .pscan import pscan
 
+
+activationFunc = F.silu
+# activationFunc = F.softmax
+# activationFunc = F.relu
+
 """
 
 This file closely follows the mamba_simple.py from the official Mamba implementation, and the mamba-minimal by @johnma2006.
@@ -181,11 +186,11 @@ class MambaBlock(nn.Module):
         x = self.conv1d(x)[:, :, :L] # depthwise convolution over time, with a short filter
         x = x.transpose(1, 2) # (B, L, ED)
 
-        x = F.silu(x)
+        x = activationFunc(x)
         y = self.ssm(x)
 
         # z branch
-        z = F.silu(z)
+        z = activationFunc(z)
 
         output = y * z
         output = self.out_proj(output) # (B, L, D)
@@ -312,11 +317,13 @@ class MambaBlock(nn.Module):
         x_cache = x.unsqueeze(2)
         x = self.conv1d(torch.cat([inputs, x_cache], dim=2))[:, :, self.config.d_conv-1] # (B, ED)
 
-        x = F.silu(x)
+        x = activationFunc(x)
         y, h = self.ssm_step(x, h)
 
         # z branch
-        z = F.silu(z)
+        z = activationFunc(z) # default
+        # z = F.softmax(z) # might be better, but not as good as relu
+        # z = F.relu(z) # might be better, might cause overfitting
 
         output = y * z
         output = self.out_proj(output) # (B, D)
