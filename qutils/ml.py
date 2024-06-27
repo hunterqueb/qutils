@@ -224,7 +224,7 @@ class Adam_mini(Optimizer):
     adam mini optimizer from https://github.com/zyushun/Adam-mini \n
     optimizer that achieves on par of better performance than adamw w/ 45% - 50% less memory footprint.
     my custom implementation w/ removal of zero3, nembd, nhead, etc. these are removed b/c we are not training a language model.
-    adam mini works better than adam or adamW, w/ around 1 dec acc increase. \n
+    in my testing adam mini works better than adam or adamW, w/ around 1 dec acc increase. \n
 
     needs testing on cuda hardware
 
