@@ -124,6 +124,16 @@ def printModelParmSize(model):
     print(f"Total memory (MB): {total_memory / (1024 ** 2)}")
     print("==========================================================================================")
 
+def printModelParameters(model):
+    print("\n==========================================================================================")
+    for name, param in model.named_parameters():
+        print("---")
+        print(f"Parameter name: {name}")
+        print(f"Parameter shape: {param.shape}")
+        print(f"Parameter values:\n{param.data}")
+        print("---\n")
+    print("==========================================================================================")
+
 class SelfAttentionLayer(nn.Module):
    def __init__(self, feature_size):
        super(SelfAttentionLayer, self).__init__()

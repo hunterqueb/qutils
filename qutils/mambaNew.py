@@ -165,7 +165,7 @@ class MambaBlock(nn.Module):
 
         # S4D real initialization
         # A = torch.arange(1, config.d_state + 1, dtype=torch.float32).repeat(config.d_inner, 1)
-        A = torch.tensor(((0,1),(-9.81,1)))
+        A = torch.tensor(((0,1),(-9.81,0)))
         # self.A_log = nn.Parameter(torch.log(A)) # why store A in log ? to keep A < 0 (cf -torch.exp(...)) ? for gradient stability ?
         self.A_log = A # why store A in log ? to keep A < 0 (cf -torch.exp(...)) ? for gradient stability ?
         self.D = nn.Parameter(torch.ones(config.d_inner))
