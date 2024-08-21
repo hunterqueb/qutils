@@ -47,17 +47,62 @@ def plot3dCR3BPPredictions(yTruth, yTest, epoch=None, t=None, L=4, earth=True, m
         plt.savefig(f'predict/predict{epoch}.png')
         plt.close()
 
+def plot3dOrbitPredictions(yTruth, yTest, epoch=None, t=None, earth=True,title="Two-Body Problem"):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
 
-def plotOrbitPhasePredictions(yTruth,legend=None):
-    plt.plot(yTruth[:,0], yTruth[:,1],label=legend)
-    plt.plot(0,0,'ko')
-    plt.title('Orbit Solution')
-    plt.xlabel('x')
-    plt.ylabel('y')
+    ax.plot(yTruth[:, 0], yTruth[:, 1], yTruth[:, 2], label='Truth')
+    ax.plot(yTest[:, 0], yTest[:, 1], yTest[:, 2], label='NN')
+
+    if earth:
+        ax.plot(0, 0, 0, 'ko', label='Earth')
+
+    ax.set_title(title)
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('z')
+    limits = np.array([getattr(ax, f'get_{axis}lim')() for axis in 'xyz'])
+    ax.set_box_aspect(np.ptp(limits, axis=1))
+    ax.legend()
+    ax.grid(True)
+
+    if epoch is not None:
+        plt.savefig(f'predict/predict{epoch}.png')
+        plt.close()
+
+
+def plotOrbitPhasePredictions(yTruth,yTest,epoch=None,t=None,earth=True,plane = 'xy'):
+    if plane == 'xy':
+        x_idx, y_idx = 0, 1
+        title = 'XY Plane'
+    elif plane == 'xz':
+        x_idx, y_idx = 0, 2
+        title = 'XZ Plane'
+    elif plane == 'yz':
+        x_idx, y_idx = 1, 2
+        title = 'YZ Plane'
+    else:
+        raise ValueError("Invalid plane selection. Choose 'xy', 'xz', or 'yz'.")
+
+    plt.figure()
+    plt.plot(yTruth[:, x_idx], yTruth[:, y_idx], label='Truth')
+    plt.plot(yTest[:, x_idx], yTest[:, y_idx], label='NN')
+
+    if earth:
+        plt.plot(0,0, 'ko', label='Earth')
+
+    plt.title(f'Two-Body Problem: {title}')
+    plt.xlabel(['x', 'z'][x_idx // 2])
+    plt.ylabel(['y', 'z'][y_idx % 2])
     plt.axis('square')
+    plt.subplots_adjust(left=0.15, right=0.95, bottom=0.15, top=0.95)
     plt.tight_layout()
     plt.legend()
-    plt.grid()
+    plt.grid(True)
+
+    if epoch is not None:
+        plt.savefig(f'predict/predict{epoch}.png')
+        plt.close()
 
 def plotCR3BPPhasePredictions(yTruth,yTest,epoch=None,t=None,L = 4,earth=True,moon=True,plane = 'xy'):
     if L == False or L == None:
