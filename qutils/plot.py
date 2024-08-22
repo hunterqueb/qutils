@@ -31,7 +31,7 @@ def plot3dCR3BPPredictions(yTruth, yTest, epoch=None, t=None, L=4, earth=True, m
     if moon:
         ax.plot(1 - mu, 0, 0, 'go', label='Moon')
 
-    if L is not 0:
+    if L != 0:
         ax.plot([L[0]], [L[1]], [L[2]], 'd', color='grey', label='Lagrange Point')
 
     ax.set_title('Cislunar CR3BP')
@@ -206,38 +206,45 @@ def plotOrbitPredictions(yTruth,yTest,epoch=None,t=None):
         plt.savefig('predict/predict%d.png' % epoch)
         plt.close()
         
-def plotSolutionErrors(yTruth, yTest, t, idxLen=None, units='km',states = ('x', 'y', 'z')):
+def plotSolutionErrors(yTruth, yTest, t, units='km',states = ('x', 'y', 'z')):
     error = (yTruth - yTest)
     num_cols = error.shape[1]
     num_rows = int(num_cols / 2)
     
     fig, axes = plt.subplots(2, num_rows, figsize=(12, 6),layout='constrained')  # Change the subplots dimensions
     axes = axes.ravel()
-    
-    # handle the units labeling automatically - if DU, then use TU, if not append string with '/s'
-    posLabel = units
-    if units == 'DU':
-        velLabel = 'TU'
-    else:
-        velLabel = units + '/s'
-    
-    # automatically generate the state title labels for titling the plots
-    velStates = []
-    for i in range(len(states)):
-        velStates.append('\dot{'+states[i]+'}')
-    state_labels = [states,velStates]
 
+    # automatically generate the state title labels for titling the plots
+    if len(states) < 4:
+        velStates = []
+        for i in range(len(states)):
+            velStates.append('\dot{'+states[i]+'}')
+        state_labels = [states,velStates]
+        
+        posLabel = [units] * len(states)
+        if units == 'DU':
+            velLabel = 'TU'
+        else:
+            velLabel = [item + r'\s' for item in posLabel]
+
+
+    if len(states) == 6:
+        state_labels = np.reshape(states,(3,2))
+        posLabel = units[0:3]
+        velLabel = units[3:6]
+    # handle the units labeling automatically - if DU, then use TU, if not append string with '/s'
+    
     numPos = 0
     numVel = 0
     for i, ax in enumerate(axes[:num_cols]):
         ax.plot(t, error[:, i])
         ax.set_xlabel('t')
         if i < num_rows:
-            ax.set_ylabel('Error ['+ posLabel +']')
+            ax.set_ylabel('Error ['+ posLabel[numPos] +']')
             ax.set_title(fr'$\mathrm{{Solution\ Error\ }} ({state_labels[0][numPos]})$', fontsize=10)
             numPos = numPos + 1
         else:
-            ax.set_ylabel('Error ['+ velLabel +']')
+            ax.set_ylabel('Error ['+ velLabel[numVel] +']')
             ax.set_title(fr'$\mathrm{{Solution\ Error\ }} ({state_labels[1][numVel]})$', fontsize=10)
             numVel = numVel + 1
         ax.grid()
