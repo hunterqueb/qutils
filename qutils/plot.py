@@ -229,7 +229,7 @@ def plotSolutionErrors(yTruth, yTest, t, units='km',states = ('x', 'y', 'z')):
 
 
     if len(states) == 6:
-        state_labels = np.reshape(states,(3,2))
+        state_labels = np.reshape(states,(2,3))
         posLabel = units[0:3]
         velLabel = units[3:6]
     # handle the units labeling automatically - if DU, then use TU, if not append string with '/s'
