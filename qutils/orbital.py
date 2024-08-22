@@ -222,15 +222,22 @@ def ECI2OE(r0,v0,mu = 398600):
 
     return np.array((a, e, i, Omega, omega, M0, P))
 
-def OE2ECI(OE,t, mu = 398600):
- 
+def OE2ECI(OE,t=None, mu = 398600):
+# semi-major axis, eccentricty, inclination, RAAN, argument of periapsis, mean anomaly or true anomaly
     a = OE[0]
     e = OE[1]
     i = OE[2]
     Omega = OE[3]
     omega = OE[4]
-    M0 = OE[5]
-
+    
+    if t is not None:
+        M0 = OE[5]
+        M = M0 + n*t
+    else:
+        nu = OE[5]
+        M = nu - 2*e*np.sin(nu)+(3/4*e**2 + 1/8*e**4)*np.sin(2*nu)-1/3*e**3*np.sin(3*nu)+5/32*e**4*np.sin(4*nu)
+        # + HOT https://en.wikipedia.org/wiki/Mean_anomaly -- given by series expansion
+    
     COmega_3 = np.array([[np.cos(Omega), np.sin(Omega), 0],
                          [-np.sin(Omega), np.cos(Omega), 0], [0, 0, 1]])
     Ci_1 = np.array([[1, 0, 0], [0, np.cos(i), np.sin(i)],
@@ -242,8 +249,6 @@ def OE2ECI(OE,t, mu = 398600):
     
     
     n = np.sqrt(mu/a**3)
-
-    M = M0 + n*t
 
     E,Feval = SolveKeplerEq(M, e)
 
