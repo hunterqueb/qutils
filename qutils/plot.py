@@ -93,7 +93,7 @@ def plotOrbitPhasePredictions(yTruth,yTest,epoch=None,t=None,earth=True,plane = 
 
     plt.title(f'Two-Body Problem: {title}')
     plt.xlabel(['x', 'z'][x_idx // 2])
-    plt.ylabel(['y', 'z'][y_idx % 2])
+    plt.ylabel(['y', 'z'][y_idx // 2])
     plt.axis('square')
     plt.subplots_adjust(left=0.15, right=0.95, bottom=0.15, top=0.95)
     plt.tight_layout()
@@ -147,7 +147,7 @@ def plotCR3BPPhasePredictions(yTruth,yTest,epoch=None,t=None,L = 4,earth=True,mo
 
     plt.title(f'Planar CR3BP: {title}')
     plt.xlabel(['x', 'z'][x_idx // 2])
-    plt.ylabel(['y', 'z'][y_idx % 2])
+    plt.ylabel(['y', 'z'][y_idx // 2])
     plt.axis('square')
     plt.subplots_adjust(left=0.15, right=0.95, bottom=0.15, top=0.95)
     plt.tight_layout()
