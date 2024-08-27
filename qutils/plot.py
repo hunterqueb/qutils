@@ -261,3 +261,58 @@ def plotEnergy(yTruth,yTest,t,energyFunc,xLabel = 'Time (TU)',yLabel = 'Energy')
     plt.ylabel(yLabel)
     plt.legend()
     plt.grid()
+
+
+def plotStatePredictions(model,t,truth,train_in,test_in,train_size,lookback = 1, states = None,units=None,timeLabel = 'sec',DU = None, TU = None):
+    from torch import no_grad
+    with no_grad():
+        # shift train predictions for plotting
+        train_plot = np.ones_like(truth) * np.nan
+        y_pred = model(train_in)
+        y_pred = y_pred[:, -1, :]
+        train_plot[lookback:train_size] = model(train_in)[:, -1, :].cpu()
+        # shift test predictions for plotting
+        test_plot = np.ones_like(truth) * np.nan
+        test_plot[train_size+lookback:len(truth)] = model(test_in)[:, -1, :].cpu()
+
+    problemDim = train_plot.shape[1]
+
+    if states == None and problemDim == 4:
+        states = ['x', 'y', 'xdot', 'ydot']
+        units = ['km', 'km', 'km/s','km/s']
+        from qutils.orbital import nonDim2Dim4 as nonDim2Dim
+
+    elif states == None and problemDim == 6:
+        states = ['x', 'y', 'z', 'xdot', 'ydot', 'zdot']
+        units = ['km', 'km','km', 'km/s', 'km/s','km/s']
+        from qutils.orbital import nonDim2Dim6 as nonDim2Dim
+
+    paired_labels = [f'{label} ({unit})' for label, unit in zip(states, units)]
+
+    if states is not None:
+        def nonDim2Dim(*args):
+            return args[0] if len(args) == 1 else args
+    if DU == None and TU == None:
+        train_plot = nonDim2Dim(train_plot)
+        test_plot = nonDim2Dim(test_plot)
+    elif DU is not None and TU is not None:
+        train_plot = nonDim2Dim(train_plot,DU,TU)
+        test_plot = nonDim2Dim(test_plot,DU,TU)
+
+
+    fig, axes = plt.subplots(2,problemDim // 2)
+
+    for i, ax in enumerate(axes.flat):
+        ax.plot(t, truth[:, i], c='b', label='True Motion')
+        ax.plot(t, train_plot[:, i], c='r', label='Training Region')
+        ax.plot(t, test_plot[:, i], c='g', label='Prediction')
+        ax.set_xlabel('time ('+timeLabel+')')
+        ax.set_ylabel(paired_labels[i])
+
+
+    plt.legend(loc='upper left', bbox_to_anchor=(1,0.5))
+    plt.tight_layout()
+    
+    from qutils.mlExtras import generateTrajectoryPrediction
+
+    return generateTrajectoryPrediction(train_plot,test_plot)
