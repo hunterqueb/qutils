@@ -308,6 +308,7 @@ def plotStatePredictions(model,t,truth,train_in,test_in,train_size,lookback = 1,
         ax.plot(t, test_plot[:, i], c='g', label='Prediction')
         ax.set_xlabel('time ('+timeLabel+')')
         ax.set_ylabel(paired_labels[i])
+        ax.grid()
 
 
     plt.legend(loc='upper left', bbox_to_anchor=(1,0.5))
