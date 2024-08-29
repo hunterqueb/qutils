@@ -159,7 +159,7 @@ def plotCR3BPPhasePredictions(yTruth,yTest,epoch=None,t=None,L = 4,earth=True,mo
         plt.close()
 
 def plotOrbitPredictions(yTruth,yTest,epoch=None,t=None):
-    fig, axes = plt.subplots(nrows=2, ncols=2,layout='constrained')
+    fig, axes = plt.subplots(nrows=2, ncols=2,constrained_layout=True)
 
     # Plot the data in each subplot
     axes[0, 0].plot(t, yTruth[:,0],label = 'Truth')
@@ -211,7 +211,7 @@ def plotSolutionErrors(yTruth, yTest, t, units='km',states = ('x', 'y', 'z')):
     num_cols = error.shape[1]
     num_rows = int(num_cols / 2)
     
-    fig, axes = plt.subplots(2, num_rows, figsize=(12, 6),layout='constrained')  # Change the subplots dimensions
+    fig, axes = plt.subplots(2, num_rows, figsize=(12, 6),constrained_layout=True)  # Change the subplots dimensions
     axes = axes.ravel()
 
     # automatically generate the state title labels for titling the plots
