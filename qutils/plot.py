@@ -279,13 +279,16 @@ def plotStatePredictions(model,t,truth,train_in,test_in,train_size,lookback = 1,
 
     if states == None and problemDim == 4:
         states = ['x', 'y', 'xdot', 'ydot']
-        units = ['km', 'km', 'km/s','km/s']
+        unitsDefault = ['km', 'km', 'km/s','km/s']
         from qutils.orbital import nonDim2Dim4 as nonDim2Dim
 
     elif states == None and problemDim == 6:
         states = ['x', 'y', 'z', 'xdot', 'ydot', 'zdot']
-        units = ['km', 'km','km', 'km/s', 'km/s','km/s']
+        unitsDefault = ['km', 'km','km', 'km/s', 'km/s','km/s']
         from qutils.orbital import nonDim2Dim6 as nonDim2Dim
+
+    if units is None:
+        units = unitsDefault
 
     paired_labels = [f'{label} ({unit})' for label, unit in zip(states, units)]
 
