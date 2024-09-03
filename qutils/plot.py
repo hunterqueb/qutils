@@ -277,6 +277,10 @@ def plotStatePredictions(model,t,truth,train_in,test_in,train_size,lookback = 1,
 
     problemDim = train_plot.shape[1]
 
+    if states is not None:
+        def nonDim2Dim(*args):
+            return args[0] if len(args) == 1 else args
+
     if states == None and problemDim == 4:
         states = ['x', 'y', 'xdot', 'ydot']
         unitsDefault = ['km', 'km', 'km/s','km/s']
@@ -292,9 +296,6 @@ def plotStatePredictions(model,t,truth,train_in,test_in,train_size,lookback = 1,
 
     paired_labels = [f'{label} ({unit})' for label, unit in zip(states, units)]
 
-    if states is not None:
-        def nonDim2Dim(*args):
-            return args[0] if len(args) == 1 else args
     if DU == None and TU == None:
         train_plot = nonDim2Dim(train_plot)
         test_plot = nonDim2Dim(test_plot)
