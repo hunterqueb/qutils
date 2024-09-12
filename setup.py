@@ -5,7 +5,7 @@ from setuptools import find_packages
 
 setup(
       name="qutils",
-      version="0.9",
+      version="0.10",
       description="General utilities for engineering research in Python.",
       author='Hunter Quebedeaux',
       packages=find_packages(),
