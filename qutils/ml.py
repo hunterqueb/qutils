@@ -8,6 +8,7 @@ import sys
 from torch.optim.optimizer import Optimizer
 import math
 import torch.distributed as dist
+import numpy as np
 
 def getDevice():
     is_cuda = torch.cuda.is_available()
@@ -32,6 +33,38 @@ def getDevice():
         print("GPU not available, CPU used")
     
     return device
+
+def create_datasets(data,seq_length,train_size,device):
+    xs, ys = [], []
+    for i in range (len(data) - seq_length):
+        x = data[i:(i + seq_length)]
+        y = data[i + seq_length]
+        y = np.reshape(y,(1,y.shape[0]))
+        xs.append(x)
+        ys.append(y)
+    
+    X_train, X_test = xs[:train_size], xs[train_size:]
+    Y_train, Y_test = ys[:train_size], ys[train_size:]
+    # Convert to PyTorch tensors
+    X_train = torch.tensor(np.array(X_train)).double().to(device)
+    Y_train = torch.tensor(np.array(Y_train)).double().to(device)
+    X_test = torch.tensor(np.array(X_test)).double().to(device)
+    Y_test = torch.tensor(np.array(Y_test)).double().to(device)
+
+    return X_train,Y_train,X_test,Y_test
+
+def genPlotPrediction(model,output_seq,train_in,test_in,train_size,seq_length):
+    with torch.no_grad():
+        # shift train predictions for plotting
+        train_plot = np.ones_like(output_seq) * np.nan
+        y_pred = model(train_in)
+        y_pred = y_pred[:, -1, :]
+        train_plot[seq_length:train_size+seq_length] = model(train_in)[:, -1, :].cpu()
+        # shift test predictions for plotting
+        test_plot = np.ones_like(output_seq) * np.nan
+        test_plot[train_size+seq_length:] = model(test_in)[:, -1, :].cpu()
+
+    return train_plot, test_plot
 
 def saveModel(model,input_size=None):
     '''

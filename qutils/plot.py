@@ -263,17 +263,11 @@ def plotEnergy(yTruth,yTest,t,energyFunc,xLabel = 'Time (TU)',yLabel = 'Energy')
     plt.grid()
 
 
-def plotStatePredictions(model,t,truth,train_in,test_in,train_size,lookback = 1, states = None,units=None,timeLabel = 'sec',DU = None, TU = None):
-    from torch import no_grad
-    with no_grad():
-        # shift train predictions for plotting
-        train_plot = np.ones_like(truth) * np.nan
-        y_pred = model(train_in)
-        y_pred = y_pred[:, -1, :]
-        train_plot[lookback:train_size] = model(train_in)[:, -1, :].cpu()
-        # shift test predictions for plotting
-        test_plot = np.ones_like(truth) * np.nan
-        test_plot[train_size+lookback:len(truth)] = model(test_in)[:, -1, :].cpu()
+def plotStatePredictions(model,t,truth,train_in,test_in,train_size,test_size, seq_length = 1, states = None,units=None,timeLabel = 'sec',DU = None, TU = None):
+
+    from qutils.ml import genPlotPrediction
+
+    train_plot, test_plot = genPlotPrediction(model,truth,train_in,test_in,train_size,seq_length)
 
     problemDim = train_plot.shape[1]
 
