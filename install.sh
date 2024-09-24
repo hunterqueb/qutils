@@ -8,4 +8,4 @@ if [ $? -ne 0 ]; then
 fi
 
 # Run the pip install command in the current directory
-pip install .
+pip install . -r requirements.txt
