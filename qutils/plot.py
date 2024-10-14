@@ -49,6 +49,9 @@ def plot3dCR3BPPredictions(yTruth, yTest, epoch=None, t=None, L=4, earth=True, m
 
 def plot3dOrbitPredictions(yTruth, yTest, epoch=None, t=None, earth=True,title="Two-Body Problem"):
     fig = plt.figure()
+    axisFontsize = 7
+    plt.rcParams.update({'font.size': axisFontsize})
+
     ax = fig.add_subplot(111, projection='3d')
 
     ax.plot(yTruth[:, 0], yTruth[:, 1], yTruth[:, 2], label='Truth')
@@ -57,18 +60,19 @@ def plot3dOrbitPredictions(yTruth, yTest, epoch=None, t=None, earth=True,title="
     if earth:
         ax.plot(0, 0, 0, 'ko', label='Earth')
 
-    ax.set_title(title)
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
-    ax.set_zlabel('z')
+    ax.set_title(title,fontsize=10)
+    ax.set_xlabel('x [km]',fontsize=axisFontsize)
+    ax.set_ylabel('y [km]',fontsize=axisFontsize)
+    ax.set_zlabel('z [km]',fontsize=axisFontsize)
     limits = np.array([getattr(ax, f'get_{axis}lim')() for axis in 'xyz'])
     ax.set_box_aspect(np.ptp(limits, axis=1))
-    ax.legend()
+    ax.legend(fontsize=10)
     ax.grid(True)
 
     if epoch is not None:
         plt.savefig(f'predict/predict{epoch}.png')
         plt.close()
+    plt.rcParams.update({'font.size': 10})
 
 
 def plotOrbitPhasePredictions(yTruth,yTest,epoch=None,t=None,earth=True,plane = 'xy'):
@@ -99,6 +103,7 @@ def plotOrbitPhasePredictions(yTruth,yTest,epoch=None,t=None,earth=True,plane = 
     plt.tight_layout()
     plt.legend()
     plt.grid(True)
+    plt.tight_layout()
 
     if epoch is not None:
         plt.savefig(f'predict/predict{epoch}.png')
@@ -247,6 +252,37 @@ def plotSolutionErrors(yTruth, yTest, t, units='km',states = ('x', 'y', 'z')):
             ax.set_ylabel('Error ['+ velLabel[numVel] +']')
             ax.set_title(fr'$\mathrm{{Solution\ Error\ }} ({state_labels[1][numVel]})$', fontsize=10)
             numVel = numVel + 1
+        ax.grid()
+
+def plotPercentSolutionErrors(yTruth, yTest, t, semiMajorAxis, perigeeVel, units='%',states = ('x', 'y', 'z')):
+    error = (yTruth - yTest)
+    num_cols = error.shape[1]
+    num_rows = int(num_cols / 2)
+    
+    fig, axes = plt.subplots(2, num_rows, figsize=(12, 6),constrained_layout=True)  # Change the subplots dimensions
+    axes = axes.ravel()
+
+    # automatically generate the state title labels for titling the plots
+    if len(states) < 4:
+        velStates = []
+        for i in range(len(states)):
+            velStates.append('\dot{'+states[i]+'}')
+        state_labels = [states,velStates]
+    
+    numPos = 0
+    numVel = 0
+    for i, ax in enumerate(axes[:num_cols]):
+        if i < num_rows:
+            ax.plot(t, error[:, i]/semiMajorAxis * 100)
+            ax.set_xlabel('t')
+            ax.set_title(fr'$\mathrm{{Percent\ of\ Semimajor\ Axis\ }} ({state_labels[0][numPos]})$', fontsize=10)
+            numPos = numPos + 1
+        else:
+            ax.plot(t, error[:, i]/perigeeVel * 100)
+            ax.set_xlabel('t')
+            ax.set_title(fr'$\mathrm{{Percent\ of\ Perrigee\ Velocity\ }} ({state_labels[1][numVel]})$', fontsize=10)
+            numVel = numVel + 1
+        ax.set_ylabel(units + ' Error')
         ax.grid()
 
 def plotEnergy(yTruth,yTest,t,energyFunc,xLabel = 'Time (TU)',yLabel = 'Energy'):

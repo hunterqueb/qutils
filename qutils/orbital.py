@@ -374,6 +374,16 @@ def visVivaEnergy(r,v,mu):
         E[i] = (np.linalg.norm(v[:,i]) ** 2 ) / 2 - (mu / np.linalg.norm(r[:,i]))
     return E
 
+def orbitalEnergy(Y,mu=396800):
+    positions = Y[:, 0:3]
+    velocities = Y[:, 3:6]
+    r = np.linalg.norm(positions, axis=1)
+    v = np.linalg.norm(velocities, axis=1)
+    E = 0.5 * v**2 - mu / r
+    return E
+
+
+
 def jacobiConstant(Y):
     m_1 = 5.974E24  # kg
     m_2 = 7.348E22 # kg
