@@ -238,7 +238,6 @@ def plotSolutionErrors(yTruth, yTest, t, units='km',states = ('x', 'y', 'z')):
         posLabel = units[0:3]
         velLabel = units[3:6]
     # handle the units labeling automatically - if DU, then use TU, if not append string with '/s'
-    
     numPos = 0
     numVel = 0
     for i, ax in enumerate(axes[:num_cols]):
@@ -253,6 +252,39 @@ def plotSolutionErrors(yTruth, yTest, t, units='km',states = ('x', 'y', 'z')):
             ax.set_title(fr'$\mathrm{{Solution\ Error\ }} ({state_labels[1][numVel]})$', fontsize=10)
             numVel = numVel + 1
         ax.grid()
+
+def newPlotSolutionErrors(yTruth, yTest, t, states = None,units=None,timeLabel = 'sec'):
+    error = (yTruth - yTest)
+    problemDim = error.shape[1]
+
+    unitsDefault = ['none'] * problemDim
+
+    if states == None and problemDim == 4:
+        states = ['x', 'y', 'xdot', 'ydot']
+        unitsDefault = ['km', 'km', 'km/s','km/s']
+
+    elif states == None and problemDim == 6:
+        states = ['x', 'y', 'z', 'xdot', 'ydot', 'zdot']
+        unitsDefault = ['km', 'km','km', 'km/s', 'km/s','km/s']
+
+    if units is None:
+        units = unitsDefault
+
+    # paired_labels = [f'Error in {label} ({unit})' for label, unit in zip(states, units)]
+
+    if not (problemDim % 2):
+        fig, axes = plt.subplots(2,problemDim // 2)
+    else:
+        fig, axes = plt.subplots(1,problemDim)
+
+
+    for i, ax in enumerate(axes.flat):
+        ax.plot(t, error[:, i])
+        ax.set_xlabel('time ('+timeLabel+')')
+        ax.set_ylabel(units[i])
+        ax.set_title(fr'$\mathrm{{Solution\ Error\ }} ({states[i]})$', fontsize=10)
+        ax.grid()
+
 
 def plotPercentSolutionErrors(yTruth, yTest, t, semiMajorAxis, perigeeVel, units='%',states = ('x', 'y', 'z')):
     error = (yTruth - yTest)
@@ -306,7 +338,7 @@ def plotStatePredictions(model,t,truth,train_in,test_in,train_size,test_size, se
     train_plot, test_plot = genPlotPrediction(model,truth,train_in,test_in,train_size,seq_length)
 
     problemDim = train_plot.shape[1]
-
+    unitsDefault = ['none'] * problemDim
     if states is not None:
         def nonDim2Dim(*args):
             return args[0] if len(args) == 1 else args
@@ -334,7 +366,11 @@ def plotStatePredictions(model,t,truth,train_in,test_in,train_size,test_size, se
         test_plot = nonDim2Dim(test_plot,DU,TU)
 
 
-    fig, axes = plt.subplots(2,problemDim // 2)
+    if not (problemDim % 2):
+        fig, axes = plt.subplots(2,problemDim // 2)
+    else:
+        fig, axes = plt.subplots(1,problemDim)
+
 
     for i, ax in enumerate(axes.flat):
         ax.plot(t, truth[:, i], c='b', label='True Motion')
