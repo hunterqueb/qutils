@@ -284,10 +284,11 @@ def newPlotSolutionErrors(yTruth, yTest, t, states = None,units=None,timeLabel =
         ax.set_ylabel(units[i])
         ax.set_title(fr'$\mathrm{{Solution\ Error\ }} ({states[i]})$', fontsize=10)
         ax.grid()
+    plt.tight_layout()
 
 
 def plotPercentSolutionErrors(yTruth, yTest, t, semiMajorAxis, perigeeVel, units='%',states = ('x', 'y', 'z')):
-    error = (yTruth - yTest)
+    error = (yTruth - yTest)/yTruth
     num_cols = error.shape[1]
     num_rows = int(num_cols / 2)
     
@@ -305,14 +306,14 @@ def plotPercentSolutionErrors(yTruth, yTest, t, semiMajorAxis, perigeeVel, units
     numVel = 0
     for i, ax in enumerate(axes[:num_cols]):
         if i < num_rows:
-            ax.plot(t, error[:, i]/semiMajorAxis * 100)
+            ax.plot(t, error[:, i] * 100)
             ax.set_xlabel('t')
-            ax.set_title(fr'$\mathrm{{Percent\ of\ Semimajor\ Axis\ }} ({state_labels[0][numPos]})$', fontsize=10)
+            ax.set_title(fr'$\mathrm{{Percent\ Error\ }} ({state_labels[0][numPos]})$', fontsize=10)
             numPos = numPos + 1
         else:
-            ax.plot(t, error[:, i]/perigeeVel * 100)
+            ax.plot(t, error[:, i] * 100)
             ax.set_xlabel('t')
-            ax.set_title(fr'$\mathrm{{Percent\ of\ Perrigee\ Velocity\ }} ({state_labels[1][numVel]})$', fontsize=10)
+            ax.set_title(fr'$\mathrm{{Percent\ Error\ }} ({state_labels[1][numVel]})$', fontsize=10)
             numVel = numVel + 1
         ax.set_ylabel(units + ' Error')
         ax.grid()
@@ -361,10 +362,11 @@ def plotStatePredictions(model,t,truth,train_in,test_in,train_size,test_size, se
     if DU == None and TU == None:
         train_plot = nonDim2Dim(train_plot)
         test_plot = nonDim2Dim(test_plot)
+        truth = nonDim2Dim(truth)
     elif DU is not None and TU is not None:
         train_plot = nonDim2Dim(train_plot,DU,TU)
         test_plot = nonDim2Dim(test_plot,DU,TU)
-
+        truth = nonDim2Dim(truth,DU,TU)
 
     if not (problemDim % 2):
         fig, axes = plt.subplots(2,problemDim // 2)
