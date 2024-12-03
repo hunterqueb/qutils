@@ -135,8 +135,11 @@ def printoutMaxLayerWeight(model):
         for param in model.named_parameters():
             print("Weight Tensor Name: ", param[0])  # Name of the parameter
             # Flatten the tensor to find the maximum index
-            max_value = torch.max(torch.abs(param[1]))  # Flatten and find max value and its index
-            print("Maximum Weight Value: ", max_value.item())
+            flat_tensor = param[1].flatten()
+            flat_abs_tensor = flat_tensor.abs()
+            flat_index = flat_abs_tensor.argmax()   
+            max_abs_value = flat_tensor[flat_index]
+            print("Maximum Weight Value: ", max_abs_value.item())
             # Calculate the original multi-dimensional index manually
             original_shape_index = (param[1]==torch.max(torch.abs(param[1]))).nonzero()
             print("Maximum Weight Index (original shape): ", original_shape_index)
@@ -149,10 +152,13 @@ def getSuperWeight(model):
     if isinstance(model,Mamba):
         highest = [None,0,None]
         for param in model.named_parameters():
-            max_value = torch.max(torch.abs(param[1]))  # Flatten and find max value and its index
-            if highest[1] < abs(max_value.item()):
+            flat_tensor = param[1].flatten()
+            flat_abs_tensor = flat_tensor.abs()
+            flat_index = flat_abs_tensor.argmax()   
+            max_abs_value = flat_tensor[flat_index]
+            if abs(highest[1]) < abs(max_abs_value.item()):
                 highest[0] = param[0]
-                highest[1] = abs(max_value.item())
+                highest[1] = max_abs_value.item()
                 highest[2] = (param[1]==torch.max(torch.abs(param[1]))).nonzero()
                 # Calculate the original multi-dimensional index manually
         print("Layer with Superweight",highest)
@@ -161,24 +167,25 @@ def getSuperWeight(model):
         print("Model is not a mamba model. Returning...")
         return
 
-def plotSuperWeight(model):
-    if isinstance(model,Mamba):
+def plotSuperWeight(model,newPlot=True):
+    if newPlot:
         plt.figure()
-        i = 1
-        maxVal = []
-        t = []
-        for param in model.named_parameters():
-            max_value = torch.max(torch.abs(param[1])).item()  # Flatten and find max value and its index
-            maxVal.append(max_value)
-            t.append(i)
-            i += 1
-        plt.plot(t,maxVal)
-        plt.xlabel("Parameter Number")
-        plt.tight_layout()
-        plt.grid()
-    else:
-        print("Model is not a mamba model. Returning...")
-        return
+    i = 1
+    maxVal = []
+    t = []
+    for param in model.named_parameters():
+        flat_tensor = param[1].flatten()
+        flat_abs_tensor = flat_tensor.abs()
+        flat_index = flat_abs_tensor.argmax()   
+        max_abs_value = flat_tensor[flat_index].item()
+
+        maxVal.append(max_abs_value)
+        t.append(i)
+        i += 1
+    plt.plot(t,maxVal)
+    plt.xlabel("Parameter Number")
+    plt.tight_layout()
+    plt.grid()
 
 def plotMinWeight(model):
     if isinstance(model,Mamba):
