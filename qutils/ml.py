@@ -250,17 +250,49 @@ def transferLSTM(pretrainedModel,newModel):
     parameters: pretrainedModel - pretrained pytorch model with two LSTM layers
                 newModel - untrained pytorch model with two LSTM layers
     '''
-    newModel.lstm1.load_state_dict(pretrainedModel.lstm1.state_dict())
-    newModel.lstm2.load_state_dict(pretrainedModel.lstm2.state_dict())
+    newModel.lstm.load_state_dict(pretrainedModel.lstm.state_dict())
 
     # Freeze the weights of the LSTM layers
-    for param in newModel.lstm1.parameters():
-        param.requires_grad = False
-    for param in newModel.lstm2.parameters():
-        param.requires_grad = False
+    for param in newModel.lstm.parameters():
+        param.requires_grad = True
 
     return newModel
 
+def transferMamba(pretrainedModel,newModel,trainableLayers = [True,True,True]):
+    '''
+    custom function to transfer knowledge of a mamba network from a pretrained model to a new model
+    the mamba network is from https://github.com/alxndrTL/mamba.py
+
+    parameters: pretrainedModel - pretrained pytorch mamba model with one state space layer
+                newModel - untrained pytorch mamba model with one state space layer
+    '''
+    # deltaBC is calced simultaneously here!
+    # model.layers[0].mixer.x_proj.state_dict()
+
+    # load the parameters from the old model to the new, and set all parameters to untrainable
+    newModel.load_state_dict(pretrainedModel.state_dict())
+    for param in newModel.parameters():
+        param.requires_grad = False
+
+    for param in newModel.layers[0].mixer.conv1d.parameters():
+        param.requires_grad = True
+
+    # trainanle A matrix
+    newModel.layers[0].mixer.A_log.requires_grad = False
+
+    # trainable deltaBC matrix
+    for param in newModel.layers[0].mixer.x_proj.parameters():
+        param.requires_grad = trainableLayers[0]
+
+    for param in newModel.layers[0].mixer.dt_proj.parameters():
+        param.requires_grad = trainableLayers[1]
+
+    # probably not the best to transfer, this is the projection from the latent state space back to the output space
+    for param in newModel.layers[0].mixer.out_proj.parameters():
+        param.requires_grad = trainableLayers[2]
+
+
+    return newModel
 
 class Adam_mini(Optimizer):
     '''
