@@ -2,6 +2,8 @@
 
 import numpy as np
 import torch
+import matplotlib.pyplot as plt
+from qutils.mamba import Mamba
 
 def findDecAcc(testingDataOutput,y_pred,printOut=True):
     '''
@@ -128,3 +130,71 @@ def __findDecimalAccuracyOLD(testingDataOutput,y_pred):
 
     return decAcc, avg
 
+def printoutMaxLayerWeight(model):
+    if isinstance(model,Mamba):
+        for param in model.named_parameters():
+            print("Weight Tensor Name: ", param[0])  # Name of the parameter
+            # Flatten the tensor to find the maximum index
+            max_value = torch.max(torch.abs(param[1]))  # Flatten and find max value and its index
+            print("Maximum Weight Value: ", max_value.item())
+            # Calculate the original multi-dimensional index manually
+            original_shape_index = (param[1]==torch.max(torch.abs(param[1]))).nonzero()
+            print("Maximum Weight Index (original shape): ", original_shape_index)
+            print()
+    else:
+        print("Model is not a mamba model. Returning...")
+        return
+
+def getSuperWeight(model):
+    if isinstance(model,Mamba):
+        highest = [None,0,None]
+        for param in model.named_parameters():
+            max_value = torch.max(torch.abs(param[1]))  # Flatten and find max value and its index
+            if highest[1] < abs(max_value.item()):
+                highest[0] = param[0]
+                highest[1] = abs(max_value.item())
+                highest[2] = (param[1]==torch.max(torch.abs(param[1]))).nonzero()
+                # Calculate the original multi-dimensional index manually
+        print("Layer with Superweight",highest)
+        return highest[1]
+    else:
+        print("Model is not a mamba model. Returning...")
+        return
+
+def plotSuperWeight(model):
+    if isinstance(model,Mamba):
+        plt.figure()
+        i = 1
+        maxVal = []
+        t = []
+        for param in model.named_parameters():
+            max_value = torch.max(torch.abs(param[1])).item()  # Flatten and find max value and its index
+            maxVal.append(max_value)
+            t.append(i)
+            i += 1
+        plt.plot(t,maxVal)
+        plt.xlabel("Parameter Number")
+        plt.tight_layout()
+        plt.grid()
+    else:
+        print("Model is not a mamba model. Returning...")
+        return
+
+def plotMinWeight(model):
+    if isinstance(model,Mamba):
+        plt.figure()
+        i = 1
+        maxVal = []
+        t = []
+        for param in model.named_parameters():
+            max_value = torch.min(torch.abs(param[1])).item()  # Flatten and find max value and its index
+            maxVal.append(max_value)
+            t.append(i)
+            i += 1
+        plt.plot(t,maxVal)
+        plt.xlabel("Parameter Number")
+        plt.tight_layout()
+        plt.grid()
+    else:
+        print("Model is not a mamba model. Returning...")
+        return
