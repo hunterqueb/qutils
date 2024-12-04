@@ -183,25 +183,29 @@ def plotSuperWeight(model,newPlot=True):
         t.append(i)
         i += 1
     plt.plot(t,maxVal)
-    plt.xlabel("Parameter Number")
+    plt.xlabel("Learnable Tensor")
+    plt.ylabel("Maximum Numerical Value")
     plt.tight_layout()
     plt.grid()
 
-def plotMinWeight(model):
-    if isinstance(model,Mamba):
+def plotMinWeight(model,newPlot=True):
+    if newPlot:
         plt.figure()
-        i = 1
-        maxVal = []
-        t = []
-        for param in model.named_parameters():
-            max_value = torch.min(torch.abs(param[1])).item()  # Flatten and find max value and its index
-            maxVal.append(max_value)
-            t.append(i)
-            i += 1
-        plt.plot(t,maxVal)
-        plt.xlabel("Parameter Number")
-        plt.tight_layout()
-        plt.grid()
-    else:
-        print("Model is not a mamba model. Returning...")
-        return
+    i = 1
+    minVal = []
+    t = []
+    for param in model.named_parameters():
+        flat_tensor = param[1].flatten()
+        flat_abs_tensor = flat_tensor.abs()
+        flat_index = flat_abs_tensor.argmin()   
+        min_abs_value = flat_tensor[flat_index].item()
+
+        minVal.append(min_abs_value)
+        t.append(i)
+        i += 1
+    plt.plot(t,minVal)
+    plt.xlabel("Learnable Tensor")
+    plt.ylabel("Minimum Numerical Value")
+    plt.tight_layout()
+    plt.grid()
+    return

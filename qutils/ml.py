@@ -294,6 +294,13 @@ def transferMamba(pretrainedModel,newModel,trainableLayers = [True,True,True]):
 
     return newModel
 
+def transferModelAll(pretrainedModel,newModel):
+    newModel.load_state_dict(pretrainedModel.state_dict())
+    for param in newModel.parameters():
+        param.requires_grad = True
+    return newModel
+
+
 class Adam_mini(Optimizer):
     '''
     adam mini optimizer from https://github.com/zyushun/Adam-mini \n
