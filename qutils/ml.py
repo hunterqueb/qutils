@@ -10,6 +10,12 @@ import math
 import torch.distributed as dist
 import numpy as np
 
+try:
+    profile  # Check if the decorator is already defined (when running with memory_profiler)
+except NameError:
+    def profile(func):  # Define a no-op `profile` decorator if it's not defined
+        return func
+
 def getDevice():
     is_cuda = torch.cuda.is_available()
     # torch.backends.mps.is_available() checks for metal support, used in nightly build so handled expection incase its run on different version
@@ -53,6 +59,7 @@ def create_datasets(data,seq_length,train_size,device):
 
     return X_train,Y_train,X_test,Y_test
 
+@profile
 def genPlotPrediction(model,output_seq,train_in,test_in,train_size,seq_length):
     with torch.no_grad():
         # shift train predictions for plotting

@@ -63,12 +63,14 @@ class orbitInitialConditions():
 
 def returnCR3BPIC(family:str,L=4,id=None,regime='cislunar',stable=True):
     '''
-    avaiable cislunar familes: butterfly, dragonfly, (both northern), halo L1-3, longPeriod L4-5, shortPeriod L4-5
+    avaiable cislunar familes: butterfly, dragonfly, (both northern), halo L1-3, longPeriod L4-5, shortPeriod L4-5, resonant43
     '''
 
     fileLocation = 'CR3BP_ICs/'
 
-    if family == 'butterfly' or family == 'dragonfly':
+    if family == 'butterfly' or family == 'dragonfly' or family == 'resonant' :
+        if family == 'resonant':
+            family = family + str(L)
         fileName = regime + '_'+ family + '.csv'
     else:
         family = family + '_L' + str(L)

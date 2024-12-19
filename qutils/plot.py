@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 
-def plot3dCR3BPPredictions(yTruth, yTest, epoch=None, t=None, L=4, earth=True, moon=True):
+def plot3dCR3BPPredictions(yTruth, yTest, epoch=None, t=None, L=4, earth=True, moon=True,DU=False):
     if L == False or L == None:
         L = 0
     if L == 1:
@@ -26,10 +26,18 @@ def plot3dCR3BPPredictions(yTruth, yTest, epoch=None, t=None, L=4, earth=True, m
     ax.plot(yTruth[:, 0], yTruth[:, 1], yTruth[:, 2], label='Truth')
     ax.plot(yTest[:, 0], yTest[:, 1], yTest[:, 2], label='NN')
 
+    earthLocation = -mu
+    moonLocation = (1 - mu)
+
+    if DU:
+        earthLocation = earthLocation * DU
+        moonLocation = moonLocation * DU
+        L = [l * DU for l in L]
+
     if earth:
-        ax.plot(-mu, 0, 0, 'ko', label='Earth')
+        ax.plot(earthLocation, 0, 0, 'ko', label='Earth')
     if moon:
-        ax.plot(1 - mu, 0, 0, 'go', label='Moon')
+        ax.plot(moonLocation, 0, 0, 'go', label='Moon')
 
     if L != 0:
         ax.plot([L[0]], [L[1]], [L[2]], 'd', color='grey', label='Lagrange Point')
@@ -109,7 +117,7 @@ def plotOrbitPhasePredictions(yTruth,yTest,epoch=None,t=None,earth=True,plane = 
         plt.savefig(f'predict/predict{epoch}.png')
         plt.close()
 
-def plotCR3BPPhasePredictions(yTruth,yTest,epoch=None,t=None,L = 4,earth=True,moon=True,plane = 'xy'):
+def plotCR3BPPhasePredictions(yTruth,yTest,epoch=None,t=None,L = 4,earth=True,moon=True,plane = 'xy',DU=False):
     if L == False or L == None:
         L = 0
     if L == 1:
@@ -139,14 +147,22 @@ def plotCR3BPPhasePredictions(yTruth,yTest,epoch=None,t=None,L = 4,earth=True,mo
     m_2 = 7.348E22  # Mass of Moon in kg
     mu = m_2 / (m_1 + m_2)
 
+    earthLocation = -mu
+    moonLocation = (1 - mu)
+
+    if DU:
+        earthLocation = earthLocation * DU
+        moonLocation = moonLocation * DU
+        L = [l * DU for l in L]
+
     plt.figure()
     plt.plot(yTruth[:, x_idx], yTruth[:, y_idx], label='Truth')
     plt.plot(yTest[:, x_idx], yTest[:, y_idx], label='NN')
 
     if earth:
-        plt.plot(-mu if x_idx == 0 else 0, 0 if y_idx in [1, 2] else -mu, 'ko', label='Earth')
+        plt.plot(earthLocation if x_idx == 0 else 0, 0 if y_idx in [1, 2] else earthLocation, 'ko', label='Earth')
     if moon:
-        plt.plot((1 - mu) if x_idx == 0 else 0, 0 if y_idx in [1, 2] else (1 - mu), 'go', label='Moon')
+        plt.plot(moonLocation if x_idx == 0 else 0, 0 if y_idx in [1, 2] else moonLocation, 'go', label='Moon')
     if L is not 0:
         plt.plot(L[x_idx], L[y_idx], 'd', color='grey', label='Lagrange Point')
 
@@ -280,7 +296,7 @@ def newPlotSolutionErrors(yTruth, yTest, t, states = None,units=None,timeLabel =
 
     for i, ax in enumerate(axes.flat):
         ax.plot(t, error[:, i])
-        ax.set_xlabel('time ('+timeLabel+')')
+        ax.set_xlabel('Time ('+timeLabel+')')
         ax.set_ylabel(units[i])
         ax.set_title(fr'$\mathrm{{Solution\ Error\ }} ({states[i]})$', fontsize=10)
         ax.grid()
