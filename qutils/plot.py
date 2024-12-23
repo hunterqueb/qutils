@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 
-def plot3dCR3BPPredictions(yTruth, yTest, epoch=None, t=None, L=4, earth=True, moon=True,DU=False):
+def plot3dCR3BPPredictions(yTruth, yTest, epoch=None, t=None, L=4, earth=True, moon=True,DU=False,networkLabel = "NN"):
     if L == False or L == None:
         L = 0
     if L == 1:
@@ -24,7 +24,7 @@ def plot3dCR3BPPredictions(yTruth, yTest, epoch=None, t=None, L=4, earth=True, m
     ax = fig.add_subplot(111, projection='3d')
 
     ax.plot(yTruth[:, 0], yTruth[:, 1], yTruth[:, 2], label='Truth')
-    ax.plot(yTest[:, 0], yTest[:, 1], yTest[:, 2], label='NN')
+    ax.plot(yTest[:, 0], yTest[:, 1], yTest[:, 2], label=networkLabel)
 
     earthLocation = -mu
     moonLocation = (1 - mu)
@@ -55,7 +55,7 @@ def plot3dCR3BPPredictions(yTruth, yTest, epoch=None, t=None, L=4, earth=True, m
         plt.savefig(f'predict/predict{epoch}.png')
         plt.close()
 
-def plot3dOrbitPredictions(yTruth, yTest, epoch=None, t=None, earth=True,title="Two-Body Problem"):
+def plot3dOrbitPredictions(yTruth, yTest, epoch=None, t=None, earth=True,title="Two-Body Problem",networkLabel = "NN"):
     fig = plt.figure()
     axisFontsize = 7
     plt.rcParams.update({'font.size': axisFontsize})
@@ -63,7 +63,7 @@ def plot3dOrbitPredictions(yTruth, yTest, epoch=None, t=None, earth=True,title="
     ax = fig.add_subplot(111, projection='3d')
 
     ax.plot(yTruth[:, 0], yTruth[:, 1], yTruth[:, 2], label='Truth')
-    ax.plot(yTest[:, 0], yTest[:, 1], yTest[:, 2], label='NN')
+    ax.plot(yTest[:, 0], yTest[:, 1], yTest[:, 2], label=networkLabel)
 
     if earth:
         ax.plot(0, 0, 0, 'ko', label='Earth')
@@ -83,7 +83,7 @@ def plot3dOrbitPredictions(yTruth, yTest, epoch=None, t=None, earth=True,title="
     plt.rcParams.update({'font.size': 10})
 
 
-def plotOrbitPhasePredictions(yTruth,yTest,epoch=None,t=None,earth=True,plane = 'xy'):
+def plotOrbitPhasePredictions(yTruth,yTest,epoch=None,t=None,earth=True,plane = 'xy',networkLabel = "NN"):
     if plane == 'xy':
         x_idx, y_idx = 0, 1
         title = 'XY Plane'
@@ -98,7 +98,7 @@ def plotOrbitPhasePredictions(yTruth,yTest,epoch=None,t=None,earth=True,plane = 
 
     plt.figure()
     plt.plot(yTruth[:, x_idx], yTruth[:, y_idx], label='Truth')
-    plt.plot(yTest[:, x_idx], yTest[:, y_idx], label='NN')
+    plt.plot(yTest[:, x_idx], yTest[:, y_idx], label=networkLabel)
 
     if earth:
         plt.plot(0,0, 'ko', label='Earth')
@@ -117,7 +117,7 @@ def plotOrbitPhasePredictions(yTruth,yTest,epoch=None,t=None,earth=True,plane = 
         plt.savefig(f'predict/predict{epoch}.png')
         plt.close()
 
-def plotCR3BPPhasePredictions(yTruth,yTest,epoch=None,t=None,L = 4,earth=True,moon=True,plane = 'xy',DU=False):
+def plotCR3BPPhasePredictions(yTruth,yTest,epoch=None,t=None,L = 4,earth=True,moon=True,plane = 'xy',DU=False,networkLabel = "NN"):
     if L == False or L == None:
         L = 0
     if L == 1:
@@ -157,7 +157,7 @@ def plotCR3BPPhasePredictions(yTruth,yTest,epoch=None,t=None,L = 4,earth=True,mo
 
     plt.figure()
     plt.plot(yTruth[:, x_idx], yTruth[:, y_idx], label='Truth')
-    plt.plot(yTest[:, x_idx], yTest[:, y_idx], label='NN')
+    plt.plot(yTest[:, x_idx], yTest[:, y_idx], label=networkLabel)
 
     if earth:
         plt.plot(earthLocation if x_idx == 0 else 0, 0 if y_idx in [1, 2] else earthLocation, 'ko', label='Earth')
@@ -179,7 +179,7 @@ def plotCR3BPPhasePredictions(yTruth,yTest,epoch=None,t=None,L = 4,earth=True,mo
         plt.savefig(f'predict/predict{epoch}.png')
         plt.close()
 
-def plotOrbitPredictions(yTruth,yTest,epoch=None,t=None):
+def plotOrbitPredictions(yTruth,yTest,epoch=None,t=None,networkLabel = "NN"):
     fig, axes = plt.subplots(nrows=2, ncols=2,constrained_layout=True)
 
     # Plot the data in each subplot
@@ -188,10 +188,10 @@ def plotOrbitPredictions(yTruth,yTest,epoch=None,t=None):
     axes[1, 0].plot(t, yTruth[:,2],label = 'Truth')
     axes[1, 1].plot(t, yTruth[:,3],label = 'Truth')
 
-    axes[0, 0].plot(t, yTest[:,0],label = 'NN')
-    axes[0, 1].plot(t, yTest[:,1],label = 'NN')
-    axes[1, 0].plot(t, yTest[:,2],label = 'NN')
-    axes[1, 1].plot(t, yTest[:,3],label = 'NN')
+    axes[0, 0].plot(t, yTest[:,0],label = networkLabel)
+    axes[0, 1].plot(t, yTest[:,1],label = networkLabel)
+    axes[1, 0].plot(t, yTest[:,2],label = networkLabel)
+    axes[1, 1].plot(t, yTest[:,3],label = networkLabel)
 
     axes[0, 0].set_ylabel('x')
     axes[0, 1].set_ylabel('y')
@@ -269,7 +269,7 @@ def plotSolutionErrors(yTruth, yTest, t, units='km',states = ('x', 'y', 'z')):
             numVel = numVel + 1
         ax.grid()
 
-def newPlotSolutionErrors(yTruth, yTest, t, states = None,units=None,timeLabel = 'sec'):
+def newPlotSolutionErrors(yTruth, yTest, t, states = None,units=None,timeLabel = 'sec',newPlot=True,networkLabels = None):
     error = (yTruth - yTest)
     problemDim = error.shape[1]
 
@@ -288,20 +288,21 @@ def newPlotSolutionErrors(yTruth, yTest, t, states = None,units=None,timeLabel =
 
     # paired_labels = [f'Error in {label} ({unit})' for label, unit in zip(states, units)]
 
-    if not (problemDim % 2):
-        fig, axes = plt.subplots(2,problemDim // 2)
-    else:
-        fig, axes = plt.subplots(1,problemDim)
-
-
+    if newPlot is True:
+        if not (problemDim % 2):
+            fig, axes = plt.subplots(2,problemDim // 2)
+        else:
+            fig, axes = plt.subplots(1,problemDim)
+    elif len(newPlot) > 1:
+        axes = newPlot
+        fig = None
     for i, ax in enumerate(axes.flat):
         ax.plot(t, error[:, i])
         ax.set_xlabel('Time ('+timeLabel+')')
         ax.set_ylabel(units[i])
         ax.set_title(fr'$\mathrm{{Solution\ Error\ }} ({states[i]})$', fontsize=10)
-        ax.grid()
-    plt.tight_layout()
-
+        ax.grid(True)
+    return fig, axes
 
 def plotPercentSolutionErrors(yTruth, yTest, t, semiMajorAxis, perigeeVel, units='%',states = ('x', 'y', 'z')):
     error = (yTruth - yTest)/yTruth
@@ -334,13 +335,16 @@ def plotPercentSolutionErrors(yTruth, yTest, t, semiMajorAxis, perigeeVel, units
         ax.set_ylabel(units + ' Error')
         ax.grid()
 
-def plotEnergy(yTruth,yTest,t,energyFunc,xLabel = 'Time (TU)',yLabel = 'Energy'):
+def plotEnergy(yTruth,yTest,t,energyFunc,xLabel = 'Time (TU)',yLabel = 'Energy',networkLabel = "NN",nonDim = True,DU=None,TU=None):
+    if nonDim is not True and DU is not None and TU is not None:
+        yTruth = nonDim(yTruth,DU,TU)
+        yTest = nonDim(yTest,DU,TU)
     ETruth = energyFunc(yTruth)
     ETest = energyFunc(yTest)
 
     plt.figure()
     plt.plot(t,ETruth,label='Truth')
-    plt.plot(t,ETest,label='NN')
+    plt.plot(t,ETest,label=networkLabel)
     plt.title('Conserved Quantity')
     plt.xlabel(xLabel)
     plt.ylabel(yLabel)

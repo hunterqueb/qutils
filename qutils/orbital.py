@@ -406,6 +406,40 @@ def jacobiConstant(Y):
 
     return C
 
+def jacobiConstant6(Y):
+    m_1 = 5.974E24  # kg
+    m_2 = 7.348E22 # kg
+    mu = m_2/(m_1 + m_2)
+
+    x    = Y[:, 0].reshape(-1, 1)
+    y    = Y[:, 1].reshape(-1, 1)
+    z    = Y[:, 2].reshape(-1, 1)
+    xdot = Y[:, 3].reshape(-1, 1)
+    ydot = Y[:, 4].reshape(-1, 1)
+    zdot = Y[:, 5].reshape(-1, 1)
+    
+    # Velocity squared
+    v_squared = xdot**2 + ydot**2 + zdot**2
+    
+    # x-locations of the two primaries in a rotating frame
+    # often chosen such that the primary with mass 1-µ is at (-µ, 0, 0)
+    # and the primary with mass µ is at (1-µ, 0, 0).
+    x_n1 = -mu       # position of the smaller primary (Moon)
+    x_n2 = 1.0 - mu  # position of the larger primary (Earth)
+    
+    # Distances to each primary
+    r1 = np.sqrt((x - x_n1)**2 + y**2 + z**2)
+    r2 = np.sqrt((x - x_n2)**2 + y**2 + z**2)
+    
+    # Jacobi constant expression in 3D
+    C = (
+        x**2 + y**2 + z**2
+        + 2.0 * (1.0 - mu) / r1
+        + 2.0 * mu / r2
+        - v_squared
+    )
+
+    return C
 
 if __name__ == "__main__":
     from scipy.integrate import solve_ivp
