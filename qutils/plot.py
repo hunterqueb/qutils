@@ -4,7 +4,7 @@ import numpy as np
 
 def plot3dCR3BPPredictions(yTruth, yTest, epoch=None, t=None, L=4, earth=True, moon=True,DU=False,networkLabel = "NN"):
     if L == False or L == None:
-        L = 0
+        L = [0,0,0]
     if L == 1:
         L = [0.8369154703225321, 0, 0]
     if L == 2:
@@ -39,7 +39,7 @@ def plot3dCR3BPPredictions(yTruth, yTest, epoch=None, t=None, L=4, earth=True, m
     if moon:
         ax.plot(moonLocation, 0, 0, 'go', label='Moon')
 
-    if L != 0:
+    if sum(L) != 0:
         ax.plot([L[0]], [L[1]], [L[2]], 'd', color='grey', label='Lagrange Point')
 
     ax.set_title('Cislunar CR3BP')
