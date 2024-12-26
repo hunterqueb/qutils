@@ -71,7 +71,9 @@ def generateTrajectoryPrediction(train_plot,test_plot):
     if both matrices have nan, a new matrix is returned with the nan value.
     '''
     trajPredition = np.zeros_like(train_plot)
+    from qutils.tictoc import timer
 
+    solTime = timer()
     for i in range(test_plot.shape[0]):
         for j in range(test_plot.shape[1]):
             # Check if either of the matrices has a non-nan value at the current position
@@ -82,6 +84,8 @@ def generateTrajectoryPrediction(train_plot,test_plot):
                 # If both are nan, set traj element to nan
                 trajPredition[i, j] = np.nan
 
+    elapsedTime = solTime.tocVal()
+    print("Network Solution Generation Time: ",elapsedTime)
     return trajPredition
 
 
