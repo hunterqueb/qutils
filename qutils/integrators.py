@@ -125,10 +125,14 @@ def ode45(fun,tspan,y0,t_eval=None,rtol = 1e-8,atol = 1e-8):
     return t, y
 
 @profile
-def ode85(fun,tspan,y0,t_eval=None,rtol = 1e-8,atol = 1e-8):
+def ode87(fun,tspan,y0,t_eval=None,rtol = 1e-8,atol = 1e-8):
     '''
     wrapper for scipy dop853 function - an 8th order solver with 5th order error and adaptive step size
     input same as solve_ivp but has higher default tolerances
+    
+    DOP is a Dormand & Prince 8th order method that uses a 5th order error estimator and bootstraps on a 3rd order estimator 
+    to obtain a dense output of order 7.
+    
     outputs in the same format as the matlab function, a tuple of t and y reshapes to be more like matlab function
     '''
     solution = solve_ivp(fun,tspan,y0,t_eval=t_eval,rtol = rtol,atol = atol,method="DOP853")
@@ -136,6 +140,15 @@ def ode85(fun,tspan,y0,t_eval=None,rtol = 1e-8,atol = 1e-8):
     t, y = solution.t.reshape(-1,1), solution.y.T
 
     return t, y
+
+# https://www.mathworks.com/matlabcentral/fileexchange/61130-runge-kutta-fehlberg-rkf78
+# implementation of rkf78, use for help with rkf89
+# gmat implemented rk89 BT coefficents
+# https://github.com/TomTravis/GMAT-1/blob/GMAT-2020a/src/base/propagator/RungeKutta89.cpp
+
+
+
+
 
 # import desolver as de
 
