@@ -119,7 +119,7 @@ def plotOrbitPhasePredictions(yTruth,yTest,epoch=None,t=None,earth=True,plane = 
 
 def plotCR3BPPhasePredictions(yTruth,yTest,epoch=None,t=None,L = 4,earth=True,moon=True,plane = 'xy',DU=False,networkLabel = "NN"):
     if L == False or L == None:
-        L = 0
+        L = [0,0,0]
     if L == 1:
         L = [0.8369154703225321,0,0]
     if L == 2:
@@ -163,7 +163,7 @@ def plotCR3BPPhasePredictions(yTruth,yTest,epoch=None,t=None,L = 4,earth=True,mo
         plt.plot(earthLocation if x_idx == 0 else 0, 0 if y_idx in [1, 2] else earthLocation, 'ko', label='Earth')
     if moon:
         plt.plot(moonLocation if x_idx == 0 else 0, 0 if y_idx in [1, 2] else moonLocation, 'go', label='Moon')
-    if L is not 0:
+    if sum(L) != 0:
         plt.plot(L[x_idx], L[y_idx], 'd', color='grey', label='Lagrange Point')
 
     plt.title(f'Planar CR3BP: {title}')
@@ -172,7 +172,7 @@ def plotCR3BPPhasePredictions(yTruth,yTest,epoch=None,t=None,L = 4,earth=True,mo
     plt.axis('square')
     plt.subplots_adjust(left=0.15, right=0.95, bottom=0.15, top=0.95)
     plt.tight_layout()
-    plt.legend()
+    # plt.legend()
     plt.grid(True)
 
     if epoch is not None:
@@ -293,6 +293,8 @@ def newPlotSolutionErrors(yTruth, yTest, t, states = None,units=None,timeLabel =
             fig, axes = plt.subplots(2,problemDim // 2)
         else:
             fig, axes = plt.subplots(1,problemDim)
+        fig.tight_layout()
+
     elif len(newPlot) > 1:
         axes = newPlot
         fig = None
