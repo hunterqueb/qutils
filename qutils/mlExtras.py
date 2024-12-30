@@ -63,6 +63,41 @@ def findDecAcc(testingDataOutput,y_pred,printOut=True):
     # return values
     return avg, error
 
+def mse(y_truth, y_pred,output='full'):
+    mse = np.nanmean((y_truth - y_pred)**2,axis=0)
+    
+    if output == 'single':
+        mseVal = np.mean(mse)
+        mse = np.array([mseVal])
+    elif output == 'dynamicalSystem':
+        mid_idx = len(mse) // 2 
+        pos = np.mean(mse[:mid_idx])
+        vel = np.mean(mse[mid_idx:])
+        mse = np.array((pos,vel))
+    print("\nMean Square Error")
+    for i, avg in enumerate(mse, 1):
+        print(f"Dimension {i}: {avg}")
+
+    return mse
+
+def rmse(y_truth, y_pred,output='full'):
+    mse = np.sqrt(np.nanmean((y_truth - y_pred)**2,axis=0))
+    
+    if output == 'single':
+        mseVal = np.mean(mse)
+        mse = np.array([mseVal])
+    elif output == 'dynamicalSystem':
+        mid_idx = len(mse) // 2 
+        pos = np.mean(mse[:mid_idx])
+        vel = np.mean(mse[mid_idx:])
+        mse = np.array((pos,vel))
+    print("\nRoot Mean Square Error")
+    for i, avg in enumerate(mse, 1):
+        print(f"Dimension {i}: {avg}")
+
+    return mse
+
+
 def generateTrajectoryPrediction(train_plot,test_plot):
     '''
     takes matrices of two equal lengths and compares the values element by element. 
