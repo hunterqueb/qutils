@@ -9,6 +9,10 @@ from torch.optim.optimizer import Optimizer
 import math
 import torch.distributed as dist
 import numpy as np
+from qutils.tictoc import timer
+import torch.utils.data as data
+from qutils.mlExtras import findDecAcc
+
 
 try:
     profile  # Check if the decorator is already defined (when running with memory_profiler)
@@ -58,6 +62,46 @@ def create_datasets(data,seq_length,train_size,device):
     Y_test = torch.tensor(np.array(Y_test)).double().to(device)
 
     return X_train,Y_train,X_test,Y_test
+
+def trainModel(model,n_epochs,datasets,criterion,optimizer,printOutAcc = True,printOutToc = True):
+    train_in = datasets[0]
+    train_out = datasets[1]
+    test_in = datasets[2]
+    test_out = datasets[3]
+    
+    loader = data.DataLoader(data.TensorDataset(train_in, train_out), shuffle=True, batch_size=8)
+
+
+    if printOutToc: # if printing out toc, use timer class
+        trainTime = timer()
+
+    for epoch in range(n_epochs):
+        model.train()
+        for X_batch, y_batch in loader:
+            y_pred = model(X_batch)
+            loss = criterion(y_pred, y_batch)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+        # Validation
+        model.eval()
+        with torch.no_grad():
+            y_pred_train = model(train_in)
+            train_loss = np.sqrt(criterion(y_pred_train, train_out).cpu())
+            y_pred_test = model(test_in)
+            test_loss = np.sqrt(criterion(y_pred_test, test_out).cpu())
+
+            decAcc, err1 = findDecAcc(train_out,y_pred_train,printOut=False)
+            decAcc, err2 = findDecAcc(test_out,y_pred_test,printOut=printOutAcc)
+            err = np.concatenate((err1,err2),axis=0)
+
+        if printOutAcc:
+            print("Epoch %d: train loss %.4f, test loss %.4f\n" % (epoch, train_loss, test_loss))
+
+    if printOutToc:
+        trainTime.toc()
+
+    return 
 
 @profile
 def genPlotPrediction(model,output_seq,train_in,test_in,train_size,seq_length):
