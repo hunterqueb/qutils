@@ -354,7 +354,7 @@ def plotEnergy(yTruth,yTest,t,energyFunc,xLabel = 'Time (TU)',yLabel = 'Energy',
     plt.grid()
 
 
-def plotStatePredictions(model,t,truth,train_in,test_in,train_size,test_size, seq_length = 1, states = None,units=None,timeLabel = 'sec',DU = None, TU = None):
+def plotStatePredictions(model,t,truth,train_in,test_in,train_size,test_size, seq_length = 1, states = None,units=None,timeLabel = 'sec',DU = None, TU = None,plotOn = True):
 
     from qutils.ml import genPlotPrediction
 
@@ -390,23 +390,24 @@ def plotStatePredictions(model,t,truth,train_in,test_in,train_size,test_size, se
         test_plot = nonDim2Dim(test_plot,DU,TU)
         truth = nonDim2Dim(truth,DU,TU)
 
-    if not (problemDim % 2):
-        fig, axes = plt.subplots(2,problemDim // 2)
-    else:
-        fig, axes = plt.subplots(1,problemDim)
+    if plotOn:
+        if not (problemDim % 2):
+            fig, axes = plt.subplots(2,problemDim // 2)
+        else:
+            fig, axes = plt.subplots(1,problemDim)
 
 
-    for i, ax in enumerate(axes.flat):
-        ax.plot(t, truth[:, i], c='b', label='True Motion')
-        ax.plot(t, train_plot[:, i], c='r', label='Training Region')
-        ax.plot(t, test_plot[:, i], c='g', label='Prediction')
-        ax.set_xlabel('time ('+timeLabel+')')
-        ax.set_ylabel(paired_labels[i])
-        ax.grid()
+        for i, ax in enumerate(axes.flat):
+            ax.plot(t, truth[:, i], c='b', label='True Motion')
+            ax.plot(t, train_plot[:, i], c='r', label='Training Region')
+            ax.plot(t, test_plot[:, i], c='g', label='Prediction')
+            ax.set_xlabel('time ('+timeLabel+')')
+            ax.set_ylabel(paired_labels[i])
+            ax.grid()
 
 
-    plt.legend(loc='upper left', bbox_to_anchor=(1,0.5))
-    plt.tight_layout()
+        plt.legend(loc='upper left', bbox_to_anchor=(1,0.5))
+        plt.tight_layout()
     
     from qutils.mlExtras import generateTrajectoryPrediction
 

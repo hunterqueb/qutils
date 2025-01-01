@@ -99,9 +99,9 @@ def trainModel(model,n_epochs,datasets,criterion,optimizer,printOutAcc = True,pr
             print("Epoch %d: train loss %.4f, test loss %.4f\n" % (epoch, train_loss, test_loss))
 
     if printOutToc:
-        trainTime.toc()
+        timeToTrain = trainTime.toc()
 
-    return 
+    return timeToTrain
 
 @profile
 def genPlotPrediction(model,output_seq,train_in,test_in,train_size,seq_length):

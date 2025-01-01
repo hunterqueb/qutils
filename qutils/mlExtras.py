@@ -121,7 +121,7 @@ def generateTrajectoryPrediction(train_plot,test_plot):
 
     elapsedTime = solTime.tocVal()
     print("Network Solution Generation Time: ",elapsedTime)
-    return trajPredition
+    return trajPredition, elapsedTime
 
 
 def __findDecimalAccuracyOLD(testingDataOutput,y_pred):

@@ -6,7 +6,9 @@ class timer():
     def tic(self):
         self.ticTime = time.perf_counter()
     def toc(self): 
-        print("\n\tElapsed time is {:.4f} seconds.".format(time.perf_counter() - self.ticTime))
+        finalTime = time.perf_counter()
+        print("\n\tElapsed time is {:.4f} seconds.".format(finalTime - self.ticTime))
+        return finalTime - self.ticTime
     def tocVal(self):
         self.tocTime = time.perf_counter() - self.ticTime
         return self.tocTime
