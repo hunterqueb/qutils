@@ -98,7 +98,7 @@ def rmse(y_truth, y_pred,output='full'):
     return mse
 
 
-def generateTrajectoryPrediction(train_plot,test_plot):
+def generateTrajectoryPrediction(train_plot,test_plot,outputToc = False):
     '''
     takes matrices of two equal lengths and compares the values element by element. 
     if a number occupys one matrix but not the other return a new matrix with the nonzero value.
@@ -120,9 +120,11 @@ def generateTrajectoryPrediction(train_plot,test_plot):
                 trajPredition[i, j] = np.nan
 
     elapsedTime = solTime.tocVal()
-    print("Network Solution Generation Time: ",elapsedTime)
-    return trajPredition, elapsedTime
-
+    if outputToc:
+        print("Network Solution Generation Time: ",elapsedTime)
+        return trajPredition, elapsedTime
+    else:
+        return trajPredition
 
 def __findDecimalAccuracyOLD(testingDataOutput,y_pred):
     '''

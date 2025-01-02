@@ -354,7 +354,7 @@ def plotEnergy(yTruth,yTest,t,energyFunc,xLabel = 'Time (TU)',yLabel = 'Energy',
     plt.grid()
 
 
-def plotStatePredictions(model,t,truth,train_in,test_in,train_size,test_size, seq_length = 1, states = None,units=None,timeLabel = 'sec',DU = None, TU = None,plotOn = True):
+def plotStatePredictions(model,t,truth,train_in,test_in,train_size,test_size, seq_length = 1, states = None,units=None,timeLabel = 'sec',DU = None, TU = None,plotOn = True,outputToc = False):
 
     from qutils.ml import genPlotPrediction
 
@@ -411,4 +411,4 @@ def plotStatePredictions(model,t,truth,train_in,test_in,train_size,test_size, se
     
     from qutils.mlExtras import generateTrajectoryPrediction
 
-    return generateTrajectoryPrediction(train_plot,test_plot)
+    return generateTrajectoryPrediction(train_plot,test_plot,outputToc)

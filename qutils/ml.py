@@ -100,8 +100,10 @@ def trainModel(model,n_epochs,datasets,criterion,optimizer,printOutAcc = True,pr
 
     if printOutToc:
         timeToTrain = trainTime.toc()
+        return timeToTrain
+    else:
+        return None
 
-    return timeToTrain
 
 @profile
 def genPlotPrediction(model,output_seq,train_in,test_in,train_size,seq_length):
