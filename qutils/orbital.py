@@ -433,7 +433,7 @@ def jacobiConstant6(Y):
     
     # Jacobi constant expression in 3D
     C = (
-        x**2 + y**2 + z**2
+        x**2 + y**2 #+ z**2
         + 2.0 * (1.0 - mu) / r1
         + 2.0 * mu / r2
         - v_squared
