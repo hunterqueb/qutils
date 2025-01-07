@@ -298,6 +298,7 @@ class MambaBlock(nn.Module):
     The torch.zeros() isn't a problem (it's same as just feeding the input, because the conv1d is padded)
 
     As we need one such cache variable per layer, we store a caches object, which is simply a list of cache object. (See mamba_lm.py)
+    https://github.com/alxndrTL/mamba.py/blob/main/mambapy/lm.py
     """
     
     def step(self, x, cache):
