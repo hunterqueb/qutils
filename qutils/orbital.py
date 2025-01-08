@@ -9,14 +9,14 @@ class GMATReport():
 def readGMATReport(filepath,DU=None,TU=None):
     data = np.loadtxt(filepath, skiprows=1,usecols = (1,2,3,4,5,6,7))
     return data
-def dim2NonDim4(array,DU = 6378.1 ,TU = ((6378.1)**3 / 3.96800e14)**0.5):
+def dim2NonDim4(array,DU = 6378.1 ,TU = ((6378.1)**3 / 3.96800e5)**0.5):
 
     array = array / DU
     array[:,2:4] = array[:,2:4] * TU
 
     return array
 
-def dim2NonDim6(array,DU = 6378.1 ,TU = ((6378.1)**3 / 3.96800e14)**0.5):
+def dim2NonDim6(array,DU = 6378.1 ,TU = ((6378.1)**3 / 3.96800e5)**0.5):
 
     array = array / DU
     array[:,3:6] = array[:,3:6] * TU
