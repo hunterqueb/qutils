@@ -201,3 +201,17 @@ def plotSuperActivation(superWeightMagnitudes,superweightIndices,input_or_output
     plt.ylabel('Max Activation Value')
     plt.grid()
     plt.title(f"{activationArea} Activation")
+
+def zeroModelWeight(model,attributeToZero="x_proj",weightType="weight"):
+    mambaLayerAttributes = ["in_proj","conv1d","x_proj","dt_proj","out_proj"]
+    if isinstance(model,Mamba):
+        state_dict = model.state_dict()
+
+        # state_dict["layers.0.mixer."+attributeToZero+"."+weightType] = torch.zeros_like(state_dict["layers.0.mixer."+attributeToZero+"."+weightType] )
+        for param in model.parameters():
+            param.data.zero_()
+        
+        # model.load_state_dict(state_dict)
+        return
+    else:
+        return
