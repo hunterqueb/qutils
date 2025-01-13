@@ -24,7 +24,7 @@ def plot3dCR3BPPredictions(yTruth, yTest, epoch=None, t=None, L=4, earth=True, m
     ax = fig.add_subplot(111, projection='3d')
 
     ax.plot(yTruth[:, 0], yTruth[:, 1], yTruth[:, 2], label='Truth')
-    ax.plot(yTest[:, 0], yTest[:, 1], yTest[:, 2], label=networkLabel)
+    ax.plot(yTest[:, 0], yTest[:, 1], yTest[:, 2], label=networkLabel,linestyle='dotted')
 
     earthLocation = -mu
     moonLocation = (1 - mu)
@@ -63,7 +63,7 @@ def plot3dOrbitPredictions(yTruth, yTest, epoch=None, t=None, earth=True,title="
     ax = fig.add_subplot(111, projection='3d')
 
     ax.plot(yTruth[:, 0], yTruth[:, 1], yTruth[:, 2], label='Truth')
-    ax.plot(yTest[:, 0], yTest[:, 1], yTest[:, 2], label=networkLabel)
+    ax.plot(yTest[:, 0], yTest[:, 1], yTest[:, 2], label=networkLabel,linestyle='dotted')
 
     if earth:
         ax.plot(0, 0, 0, 'ko', label='Earth')
@@ -98,7 +98,7 @@ def plotOrbitPhasePredictions(yTruth,yTest,epoch=None,t=None,earth=True,plane = 
 
     plt.figure()
     plt.plot(yTruth[:, x_idx], yTruth[:, y_idx], label='Truth')
-    plt.plot(yTest[:, x_idx], yTest[:, y_idx], label=networkLabel)
+    plt.plot(yTest[:, x_idx], yTest[:, y_idx], label=networkLabel,linestyle='dotted')
 
     if earth:
         plt.plot(0,0, 'ko', label='Earth')
@@ -157,7 +157,7 @@ def plotCR3BPPhasePredictions(yTruth,yTest,epoch=None,t=None,L = 4,earth=True,mo
 
     plt.figure()
     plt.plot(yTruth[:, x_idx], yTruth[:, y_idx], label='Truth')
-    plt.plot(yTest[:, x_idx], yTest[:, y_idx], label=networkLabel)
+    plt.plot(yTest[:, x_idx], yTest[:, y_idx], label=networkLabel,linestyle='dotted')
 
     if earth:
         plt.plot(earthLocation if x_idx == 0 else 0, 0 if y_idx in [1, 2] else earthLocation, 'ko', label='Earth')
@@ -188,10 +188,10 @@ def plotOrbitPredictions(yTruth,yTest,epoch=None,t=None,networkLabel = "NN"):
     axes[1, 0].plot(t, yTruth[:,2],label = 'Truth')
     axes[1, 1].plot(t, yTruth[:,3],label = 'Truth')
 
-    axes[0, 0].plot(t, yTest[:,0],label = networkLabel)
-    axes[0, 1].plot(t, yTest[:,1],label = networkLabel)
-    axes[1, 0].plot(t, yTest[:,2],label = networkLabel)
-    axes[1, 1].plot(t, yTest[:,3],label = networkLabel)
+    axes[0, 0].plot(t, yTest[:,0],label = networkLabel,linestyle='dotted')
+    axes[0, 1].plot(t, yTest[:,1],label = networkLabel,linestyle='dotted')
+    axes[1, 0].plot(t, yTest[:,2],label = networkLabel,linestyle='dotted')
+    axes[1, 1].plot(t, yTest[:,3],label = networkLabel,linestyle='dotted')
 
     axes[0, 0].set_ylabel('x')
     axes[0, 1].set_ylabel('y')
@@ -346,7 +346,7 @@ def plotEnergy(yTruth,yTest,t,energyFunc,xLabel = 'Time (TU)',yLabel = 'Energy',
 
     plt.figure()
     plt.plot(t,ETruth,label='Truth')
-    plt.plot(t,ETest,label=networkLabel)
+    plt.plot(t,ETest,label=networkLabel,linestyle='dotted')
     plt.title('Conserved Quantity')
     plt.xlabel(xLabel)
     plt.ylabel(yLabel)
