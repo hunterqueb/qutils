@@ -187,7 +187,7 @@ def findMambaSuperActivation(model,test_in,input_or_output='output',layer_path="
     else:
         print("This is not a mamba model, exiting....")
         return None, None
-def plotSuperActivation(superWeightMagnitudes,superweightIndices,input_or_output="output"):
+def plotSuperActivation(superWeightMagnitudes,superweightIndices,input_or_output="output",printOutValues=False):
     magnitude = superWeightMagnitudes
     mambaLayerAttributes = ["in_proj","conv1d","x_proj","dt_proj","out_proj"]
     activationArea = input_or_output.capitalize()
@@ -196,6 +196,8 @@ def plotSuperActivation(superWeightMagnitudes,superweightIndices,input_or_output
     plt.figure()
     for i in range(len(magnitude)):
         plt.plot(i, magnitude[i].norm(), color='blue', marker='o', markersize=5)
+        if printOutValues is True:
+            print(mambaLayerAttributes[i] + ": ",magnitude[i].norm())
     plt.xlabel('Layer')
     plt.xticks((0,1,2,3,4),mambaLayerAttributes)
     plt.ylabel('Max Activation Value')

@@ -61,7 +61,7 @@ class orbitInitialConditions():
 
         return self.IC,self.T
 
-def returnCR3BPIC(family:str,L=4,id=None,regime='cislunar',stable=True):
+def returnCR3BPIC(family:str,L=4,id=None,regime='cislunar',stable=True,returnStabilityIndex=False):
     '''
     avaiable cislunar familes: butterfly, dragonfly, (both northern), halo L1-3, longPeriod L4-5, shortPeriod L4-5, resonant43
     '''
@@ -103,7 +103,11 @@ def returnCR3BPIC(family:str,L=4,id=None,regime='cislunar',stable=True):
         
         orbitID = random_row.iloc[0,0]
 
-        return orbitInitialConditions(x0,y0,z0,vx0,vy0,vz0,T,family,orbitID) 
+
+        if not returnStabilityIndex:
+            return orbitInitialConditions(x0,y0,z0,vx0,vy0,vz0,T,family,orbitID) 
+        else:
+            return orbitInitialConditions(x0,y0,z0,vx0,vy0,vz0,T,family,orbitID) , random_row.iloc[0,10]
     else:
         print("No rows found with a stability index within the range [0.999999, 1.00001].")
         return None
