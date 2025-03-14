@@ -250,3 +250,25 @@ def plotMinWeight(model,newPlot=True):
     plt.tight_layout()
     plt.grid()
     return
+
+def getQ2NormMatrix(y_true, y_pred):
+    y_mean = np.mean(y_true)
+    # Numerator: Sum of squared prediction errors
+    SS_res = np.sum((y_true - y_pred)**2)
+    # Denominator: Sum of squared deviations from the mean
+    SS_tot = np.sum((y_true - y_mean)**2)
+    # Q^2-norm calculation
+    Q2 = 1 - (SS_res / SS_tot)
+    return Q2
+
+def getQ2Norm(y_true,y_pred,dimension=0):
+    #dimension = 0 == row
+    #dimension = 1 == column
+    Q2_vect = -np.inf * np.ones((y_true.shape[dimension],1))
+    if dimension == 0:
+        for i in range(len(Q2_vect)):
+            Q2_vect[i] = getQ2NormMatrix(y_true[i,:],y_pred[i,:])
+    elif dimension == 1:
+        for i in range(len(Q2_vect)):
+            Q2_vect[i] = getQ2NormMatrix(y_true[:,i],y_pred[:,i])
+    return Q2_vect
