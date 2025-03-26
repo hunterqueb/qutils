@@ -363,7 +363,7 @@ def plotEnergy(yTruth,yTest,t,energyFunc,xLabel = 'Time (TU)',yLabel = 'Energy',
     plt.grid()
 
 
-def plotStatePredictions(model,t,truth,train_in,test_in,train_size,test_size, seq_length = 1, states = None,units=None,timeLabel = 'sec',DU = None, TU = None,plotOn = True,outputToc = False):
+def plotStatePredictions(model,t,truth,train_in,test_in,train_size,test_size, seq_length = 1, states = None,units=None,timeLabel = 'sec',DU = None, TU = None,plotOn = True,outputToc = False,lowData = False):
 
     from qutils.ml import genPlotPrediction
 
@@ -405,11 +405,17 @@ def plotStatePredictions(model,t,truth,train_in,test_in,train_size,test_size, se
         else:
             fig, axes = plt.subplots(1,problemDim)
 
+        if lowData:
+            train_plot = np.ones_like(truth) * np.nan
+            train_plot[0:2,:] = truth[0:2,:]
 
         for i, ax in enumerate(axes.flat):
             ax.plot(t, truth[:, i], c='b', label='True Motion')
-            ax.plot(t, train_plot[:, i], c='r', label='Training Region')
             ax.plot(t, test_plot[:, i], c='g', label='Prediction')
+            if lowData:
+                ax.plot(t, train_plot[:, i],'o', c='r', label='Training Region',markersize=4)
+            else:
+                ax.plot(t, train_plot[:, i], c='r', label='Training Region')
             ax.set_xlabel('time ('+timeLabel+')')
             ax.set_ylabel(paired_labels[i])
             ax.grid()
