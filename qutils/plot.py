@@ -269,11 +269,15 @@ def plotSolutionErrors(yTruth, yTest, t, units='km',states = ('x', 'y', 'z')):
             numVel = numVel + 1
         ax.grid()
 
-def newPlotSolutionErrors(yTruth, yTest, t, states = None,units=None,timeLabel = 'sec',newPlot=True,networkLabels = None):
-    error = (yTruth - yTest)
-    problemDim = error.shape[1]
+def newPlotSolutionErrors(yTruth, yTest, t, states = None,units=None,timeLabel = 'sec',newPlot=True,networkLabels = None,percentError = False):
+    problemDim = yTruth.shape[1]
 
-    unitsDefault = ['none'] * problemDim
+    if percentError == True:
+        error = (yTruth - yTest)/yTruth * 100
+        unitsDefault = ['% Error'] * problemDim
+    else:
+        error = (yTruth - yTest)
+        unitsDefault = ['none'] * problemDim
 
     if states == None and problemDim == 4:
         states = ['x', 'y', 'xdot', 'ydot']
@@ -299,10 +303,15 @@ def newPlotSolutionErrors(yTruth, yTest, t, states = None,units=None,timeLabel =
         axes = newPlot
         fig = None
     for i, ax in enumerate(axes.flat):
-        ax.plot(t, error[:, i])
+        ax.plot(t, error[:, i], 'o',markersize=1)
         ax.set_xlabel('Time ('+timeLabel+')')
         ax.set_ylabel(units[i])
-        ax.set_title(fr'$\mathrm{{Solution\ Error\ }} ({states[i]})$', fontsize=10)
+        if percentError == True:
+            ax.set_title(fr'Percent Error ({states[i]})', fontsize=10)
+            # if we are plotting percent errors, then we need to scale axes to be between -100 and 100
+            ax.set_ylim(-200,200)
+        else:
+            ax.set_title(fr'Solution Error ({states[i]})', fontsize=10)
         ax.grid(True)
     return fig, axes
 
