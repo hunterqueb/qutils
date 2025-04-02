@@ -56,6 +56,8 @@ class MambaConfig:
 
     pscan: bool = True # use parallel scan mode or sequential mode when training
 
+    classifer: bool = False
+
     def __post_init__(self):
         self.d_inner = self.expand_factor * self.d_model # E*D = ED in comments
 
@@ -98,7 +100,7 @@ class Mamba(nn.Module):
 class ResidualBlock(nn.Module):
     def __init__(self, config: MambaConfig):
         super().__init__()
-
+        self.config = config
         self.mixer = MambaBlock(config)
         self.norm = RMSNorm(config.d_model)
 
@@ -106,8 +108,13 @@ class ResidualBlock(nn.Module):
         # x : (B, L, D)
 
         # output : (B, L, D)
-
         output = self.mixer(self.norm(x)) + x
+
+        if self.config.classifer:
+            # if using classifier, we need to return the hidden state y and discard the output from the full block
+            output = self.mixer.y
+        else:
+            pass
         return output
     
     def step(self, x, cache):
@@ -188,6 +195,9 @@ class MambaBlock(nn.Module):
 
         x = activationFunc(x)
         y = self.ssm(x)
+        # y : (B, L, ED)
+        # save hidden state y for classifier 
+        self.y = y
 
         # z branch
         z = activationFunc(z)
