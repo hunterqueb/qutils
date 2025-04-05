@@ -77,10 +77,12 @@ class Mamba(nn.Module):
         # x : (B, L, D)
 
         # y : (B, L, D)
-
+        layerNum = 0
         for layer in self.layers:
+            layerNum += 1
+            if layerNum == self.config.n_layers:
+                layer.inLastLayer = True
             x = layer(x)
-
         #x = self.norm_f(x)
 
         return x
@@ -103,17 +105,17 @@ class ResidualBlock(nn.Module):
         self.config = config
         self.mixer = MambaBlock(config)
         self.norm = RMSNorm(config.d_model)
-
+        self.inLastLayer = False # to be set to True in the last layer of the Mamba model, to return the hidden state y instead of the output from the full block
     def forward(self, x):
         # x : (B, L, D)
 
         # output : (B, L, D)
         output = self.mixer(self.norm(x)) + x
 
-        if self.config.classifer:
-            # if using classifier, we need to return the hidden state y and discard the output from the full block
+        if self.config.classifer and self.inLastLayer:
+            # if using classifier, we need to return the hidden state y and discard the output from the full block in the final layer
             output = self.mixer.y
-        else:
+        else: # if not using classifier or if we are in a upstream layer, we need to return the output from the full block
             pass
         return output
     
