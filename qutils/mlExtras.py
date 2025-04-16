@@ -80,8 +80,12 @@ def mse(y_truth, y_pred,output='full'):
 
     return mse
 
-def rmse(y_truth, y_pred,output='full'):
-    mse = np.sqrt(np.nanmean((y_truth - y_pred)**2,axis=0))
+def rmse(y_truth, y_pred,output='full',percentRMSE=False):
+    if percentRMSE:
+        error = (y_truth - y_pred)/y_truth
+    else:
+        error = y_truth - y_pred
+    mse = np.sqrt(np.nanmean((error)**2,axis=0))
     
     if output == 'single':
         mseVal = np.mean(mse)
