@@ -279,12 +279,12 @@ def newPlotSolutionErrors(yTruth, yTest, t, states = None,units=None,timeLabel =
         error = (yTruth - yTest)
         unitsDefault = ['none'] * problemDim
 
-    if states == None and problemDim == 4:
+    if states == None and problemDim == 4 and percentError == False:
         states = ['x', 'y', 'xdot', 'ydot']
         unitsDefault = ['km', 'km', 'km/s','km/s']
 
-    elif states == None and problemDim == 6:
-        states = ['x', 'y', 'z', 'xdot', 'ydot', 'zdot']
+    elif states == None and problemDim == 6 and percentError == False:
+        states = ['x', 'y', 'z', '$\dot{x}$', '$\dot{y}$', '$\dot{z}$']
         unitsDefault = ['km', 'km','km', 'km/s', 'km/s','km/s']
 
     if units is None:
