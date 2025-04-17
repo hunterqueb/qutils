@@ -198,6 +198,7 @@ class MambaBlock(nn.Module):
         x = activationFunc(x)
         y = self.ssm(x)
         # y : (B, L, ED)
+
         # save hidden state y for classifier 
         self.y = y
 
@@ -205,6 +206,9 @@ class MambaBlock(nn.Module):
         z = activationFunc(z)
 
         output = y * z
+
+        # is the hidden state output for classifier better here?
+        self.y = output
         output = self.out_proj(output) # (B, L, D)
 
         return output
