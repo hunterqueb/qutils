@@ -13,6 +13,7 @@ from qutils.tictoc import timer
 import torch.utils.data as data
 from qutils.mlExtras import findDecAcc
 from qutils.mamba import Mamba
+from sklearn.utils.class_weight import compute_class_weight
 
 try:
     profile  # Check if the decorator is already defined (when running with memory_profiler)
@@ -632,27 +633,8 @@ def trainClassifier(model,optimizer,scheduler,dataloaders,criterion,num_epochs,d
         avg_train_loss = total_loss / len(train_loader)
         print(f"Epoch [{epoch+1}/{num_epochs}], Training Loss: {avg_train_loss:.4f}")
 
-        # Validation
-        model.eval()
-        val_loss = 0.0
-        correct = 0
-        total = 0
-        with torch.no_grad():
-            for sequences, labels in val_loader:
-                sequences = sequences.to(device,non_blocking=True)
-                labels = labels.to(device,non_blocking=True)
-
-                outputs = model(sequences)  # [batch_size, num_classes]
-                loss = criterion(outputs, labels)
-                val_loss += loss.item()
-
-                _, predicted = torch.max(outputs, dim=1)
-                total += labels.size(0)
-                correct += (predicted == labels).sum().item()
-
-        avg_val_loss = val_loss / len(val_loader)
-        val_accuracy = 100.0 * correct / total
-        print(f"Validation Loss: {avg_val_loss:.4f}, Validation Accuracy: {val_accuracy:.2f}%")
+        # Validation phase
+        avg_val_loss, val_accuracy = validateMultiClassClassifier(model, val_loader, criterion, num_classes=logits.shape[1],device=device)
 
         # Step the scheduler based on validation loss
         scheduler.step(avg_val_loss)
@@ -805,3 +787,16 @@ def validateMultiClassClassifier(model, val_loader, criterion, num_classes,devic
                 print(f"  {classlabels[i]}: No samples")
             else:
                 print(f"  Class {i}: No samples")
+    return avg_val_loss, val_accuracy
+
+def findClassWeights(train_dataset,device):
+    all_labels = np.array([label.item() for _, label in train_dataset])
+    class_weights = compute_class_weight(
+        class_weight='balanced',
+        classes=np.unique(all_labels),
+        y=all_labels
+    )
+
+    print("Class weights:", class_weights)
+    class_weights = torch.tensor(class_weights, dtype=torch.float32).to(device)
+    return class_weights
