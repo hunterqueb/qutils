@@ -754,3 +754,54 @@ class TransformerClassifier(nn.Module):
         last_output = out[:, -1, :]   # [batch_size, d_model]
         logits = self.fc(last_output) # [batch_size, num_classes]
         return logits
+
+
+def validateMultiClassClassifier(model, val_loader, criterion, num_classes,device,classlabels=None):
+
+    model.eval()
+    val_loss = 0.0
+    correct = 0
+    total = 0
+
+    class_correct = torch.zeros(num_classes, dtype=torch.int32)
+    class_total = torch.zeros(num_classes, dtype=torch.int32)
+
+    with torch.no_grad():
+        for sequences, labels in val_loader:
+            sequences = sequences.to(device, non_blocking=True)
+            labels = labels.to(device, non_blocking=True)
+
+            outputs = model(sequences)  # [batch_size, num_classes]
+            loss = criterion(outputs, labels)
+            val_loss += loss.item()
+
+            _, predicted = torch.max(outputs, dim=1)
+            correct += (predicted == labels).sum().item()
+            total += labels.size(0)
+
+            # Per-class accuracy calculation
+            for i in range(labels.size(0)):
+                label = labels[i]
+                pred = predicted[i]
+                class_total[label] += 1
+                if pred == label:
+                    class_correct[label] += 1
+
+    avg_val_loss = val_loss / len(val_loader)
+    val_accuracy = 100.0 * correct / total
+
+    print(f"Validation Loss: {avg_val_loss:.4f}, Validation Accuracy: {val_accuracy:.2f}%")
+
+    print("\nPer-Class Validation Accuracy:")
+    for i in range(num_classes):
+        if class_total[i] > 0:
+            acc = 100.0 * class_correct[i].item() / class_total[i].item()
+            if classlabels is not None:
+                print(f"  {classlabels[i]}: {acc:.2f}% ({class_correct[i]}/{class_total[i]})")
+            else:
+                print(f"  Class {i}: {acc:.2f}% ({class_correct[i]}/{class_total[i]})")
+        else:
+            if classlabels is not None:
+                print(f"  {classlabels[i]}: No samples")
+            else:
+                print(f"  Class {i}: No samples")
