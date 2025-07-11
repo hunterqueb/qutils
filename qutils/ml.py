@@ -14,6 +14,8 @@ import torch.utils.data as data
 from qutils.mlExtras import findDecAcc
 from qutils.mamba import Mamba
 from sklearn.utils.class_weight import compute_class_weight
+from sklearn.metrics import classification_report, confusion_matrix
+import pandas as pd
 
 try:
     profile  # Check if the decorator is already defined (when running with memory_profiler)
@@ -601,7 +603,7 @@ class Adam_mini(Optimizer):
                         update.mul_(lr)
                         p.add_(-update)    
 
-def trainClassifier(model,optimizer,scheduler,dataloaders,criterion,num_epochs,device,schedulerPatience=5):
+def trainClassifier(model,optimizer,scheduler,dataloaders,criterion,num_epochs,device,schedulerPatience=5,printReport = False):
     '''
     Trains a classification model using a learning rate scheduler defined by the torch.optim.lr_scheduler module.
     '''
@@ -634,7 +636,7 @@ def trainClassifier(model,optimizer,scheduler,dataloaders,criterion,num_epochs,d
         print(f"Epoch [{epoch+1}/{num_epochs}], Training Loss: {avg_train_loss:.4f}")
 
         # Validation phase
-        avg_val_loss, val_accuracy = validateMultiClassClassifier(model, val_loader, criterion, num_classes=logits.shape[1],device=device)
+        avg_val_loss, val_accuracy = validateMultiClassClassifier(model, val_loader, criterion, num_classes=logits.shape[1],device=device,printReport=printReport)
 
         # Step the scheduler based on validation loss
         scheduler.step(avg_val_loss)
@@ -738,7 +740,7 @@ class TransformerClassifier(nn.Module):
         return logits
 
 
-def validateMultiClassClassifier(model, val_loader, criterion, num_classes,device,classlabels=None):
+def validateMultiClassClassifier(model, val_loader, criterion, num_classes,device,classlabels=None,printReport=True):
 
     model.eval()
     val_loss = 0.0
@@ -747,6 +749,10 @@ def validateMultiClassClassifier(model, val_loader, criterion, num_classes,devic
 
     class_correct = torch.zeros(num_classes, dtype=torch.int32)
     class_total = torch.zeros(num_classes, dtype=torch.int32)
+
+    # Collect predictions and labels for scikit-learn metrics
+    y_true = []
+    y_pred = []
 
     with torch.no_grad():
         for sequences, labels in val_loader:
@@ -758,6 +764,10 @@ def validateMultiClassClassifier(model, val_loader, criterion, num_classes,devic
             val_loss += loss.item()
 
             _, predicted = torch.max(outputs, dim=1)
+
+            y_true.extend(labels.cpu().numpy())
+            y_pred.extend(predicted.cpu().numpy())
+
             correct += (predicted == labels).sum().item()
             total += labels.size(0)
 
@@ -772,9 +782,9 @@ def validateMultiClassClassifier(model, val_loader, criterion, num_classes,devic
     avg_val_loss = val_loss / len(val_loader)
     val_accuracy = 100.0 * correct / total
 
-    print(f"Validation Loss: {avg_val_loss:.4f}, Validation Accuracy: {val_accuracy:.2f}%")
+    print(f"Validation Loss: {avg_val_loss:.4f}, Validation Accuracy: {val_accuracy:.2f}%\n")
 
-    print("\nPer-Class Validation Accuracy:")
+    print("Per-Class Validation Accuracy:")
     for i in range(num_classes):
         if class_total[i] > 0:
             acc = 100.0 * class_correct[i].item() / class_total[i].item()
@@ -787,6 +797,39 @@ def validateMultiClassClassifier(model, val_loader, criterion, num_classes,devic
                 print(f"  {classlabels[i]}: No samples")
             else:
                 print(f"  Class {i}: No samples")
+
+    if printReport:
+        if classlabels is not None:
+            print("\nClassification Report:")
+            print(
+                classification_report(
+                    y_true,
+                    y_pred,
+                    labels=list(range(num_classes)),
+                    target_names=classlabels,
+                    digits=4,
+                    zero_division=0,
+                )
+            )
+        else:
+            print("\nClassification Report:")
+            print(
+                classification_report(
+                    y_true,
+                    y_pred,
+                    labels=list(range(num_classes)),
+                    digits=4,
+                    zero_division=0,
+                )
+            )
+            # Confusion-matrix -----------------------------------------------------
+    if printReport:
+        cm = confusion_matrix(y_true, y_pred, labels=list(range(num_classes)))
+        print("\nConfusion Matrix (rows = true, cols = predicted):")
+        print(pd.DataFrame(cm,
+                            index=[f"T_{cls}" for cls in (classlabels if classlabels else range(num_classes))],
+                            columns=[f"P_{cls}" for cls in (classlabels if classlabels else range(num_classes))]))
+
     return avg_val_loss, val_accuracy
 
 def findClassWeights(train_dataset,device):
