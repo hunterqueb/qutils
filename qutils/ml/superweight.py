@@ -1,9 +1,96 @@
 import torch
-from qutils.mamba import Mamba
+from qutils.ml.mamba import Mamba, MambaClassifier
 import matplotlib.pyplot as plt
 
 def printoutMaxLayerWeight(model):
-    if isinstance(model,Mamba):
+    if isinstance(model,Mamba) or isinstance(model,MambaClassifier):
+        if isinstance(model,MambaClassifier):
+            model = model.mamba
+        for param in model.named_parameters():
+            print("Weight Tensor Name: ", param[0])  # Name of the parameter
+            # Flatten the tensor to find the maximum index
+            flat_tensor = param[1].flatten()
+            flat_abs_tensor = flat_tensor.abs()
+            flat_index = flat_abs_tensor.argmax()   
+            max_abs_value = flat_tensor[flat_index]
+            print("Maximum Weight Value: ", max_abs_value.item())
+            # Calculate the original multi-dimensional index manually
+            original_shape_index = (param[1]==torch.max(torch.abs(param[1]))).nonzero()
+            print("Maximum Weight Index (original shape): ", original_shape_index)
+            print()
+    else:
+        print("Model is not a mamba model. Returning...")
+        return
+
+def getSuperWeight(model):
+    if isinstance(model,Mamba) or isinstance(model,MambaClassifier):
+        if isinstance(model,MambaClassifier):
+            model = model.mamba
+        highest = [None,0,None]
+        for param in model.named_parameters():
+            flat_tensor = param[1].flatten()
+            flat_abs_tensor = flat_tensor.abs()
+            flat_index = flat_abs_tensor.argmax()   
+            max_abs_value = flat_tensor[flat_index]
+            if abs(highest[1]) < abs(max_abs_value.item()):
+                highest[0] = param[0]
+                highest[1] = max_abs_value.item()
+                highest[2] = (param[1]==torch.max(torch.abs(param[1]))).nonzero()
+                # Calculate the original multi-dimensional index manually
+        print("Layer with Superweight",highest)
+        return highest[1]
+    else:
+        print("Model is not a mamba model. Returning...")
+        return
+
+def plotSuperWeight(model,newPlot=True):
+    if newPlot:
+        plt.figure()
+    i = 1
+    maxVal = []
+    t = []
+    for param in model.named_parameters():
+        flat_tensor = param[1].flatten()
+        flat_abs_tensor = flat_tensor.abs()
+        flat_index = flat_abs_tensor.argmax()   
+        max_abs_value = flat_tensor[flat_index].item()
+
+        maxVal.append(max_abs_value)
+        t.append(i)
+        i += 1
+    plt.plot(t,maxVal)
+    plt.xlabel("Learnable Tensor")
+    plt.ylabel("Maximum Numerical Value")
+    plt.tight_layout()
+    plt.grid()
+
+def plotMinWeight(model,newPlot=True):
+    if newPlot:
+        plt.figure()
+    i = 1
+    minVal = []
+    t = []
+    for param in model.named_parameters():
+        flat_tensor = param[1].flatten()
+        flat_abs_tensor = flat_tensor.abs()
+        flat_index = flat_abs_tensor.argmin()   
+        min_abs_value = flat_tensor[flat_index].item()
+
+        minVal.append(min_abs_value)
+        t.append(i)
+        i += 1
+    plt.plot(t,minVal)
+    plt.xlabel("Learnable Tensor")
+    plt.ylabel("Minimum Numerical Value")
+    plt.tight_layout()
+    plt.grid()
+    return
+
+
+def printoutMaxLayerWeight(model):
+    if isinstance(model,Mamba) or isinstance(model,MambaClassifier):
+        if isinstance(model,MambaClassifier):
+            model = model.mamba
         for param in model.named_parameters():
             print("Weight Tensor Name: ", param[0])  # Name of the parameter
             # Flatten the tensor to find the maximum index
@@ -21,7 +108,9 @@ def printoutMaxLayerWeight(model):
         return
 
 def getMaxLayerWeight(model):
-    if isinstance(model,Mamba):
+    if isinstance(model,Mamba) or isinstance(model,MambaClassifier):
+        if isinstance(model,MambaClassifier):
+            model = model.mamba
         highest = [None,0,None]
         for param in model.named_parameters():
             flat_tensor = param[1].flatten()
@@ -119,7 +208,9 @@ def findMambaSuperActivation(model,test_in,input_or_output='output',layer_path="
     '''
     Custom Find Super Activation function for a mamba layer implemented in qutils
     '''
-    if isinstance(model,Mamba):
+    if isinstance(model,Mamba) or isinstance(model,MambaClassifier):
+        if isinstance(model,MambaClassifier):
+            model = model.mamba
 
         mambaLayerAttributes = ["in_proj","conv1d","x_proj","dt_proj","out_proj"]
         module_name = "mixer"
@@ -187,9 +278,9 @@ def findMambaSuperActivation(model,test_in,input_or_output='output',layer_path="
     else:
         print("This is not a mamba model, exiting....")
         return None, None
-def plotSuperActivation(superWeightMagnitudes,superweightIndices,input_or_output="output",printOutValues=False):
+def plotSuperActivation(superWeightMagnitudes,superweightIndices,input_or_output="output",printOutValues=False,mambaLayerAttributes = ["in_proj","conv1d","x_proj","dt_proj","out_proj"]):
     magnitude = superWeightMagnitudes
-    mambaLayerAttributes = ["in_proj","conv1d","x_proj","dt_proj","out_proj"]
+    
     activationArea = input_or_output.capitalize()
     # Plot input activations
     # plt.figure(figsize=(5,3.5))
@@ -199,14 +290,19 @@ def plotSuperActivation(superWeightMagnitudes,superweightIndices,input_or_output
         if printOutValues is True:
             print(mambaLayerAttributes[i] + ": ",magnitude[i].norm())
     plt.xlabel('Layer')
-    plt.xticks((0,1,2,3,4),mambaLayerAttributes)
+    ticks = []
+    for i in range(len(mambaLayerAttributes)):
+        ticks.append(i)
+    plt.xticks(ticks,mambaLayerAttributes)
     plt.ylabel('Max Activation Value')
     plt.grid()
     plt.title(f"{activationArea} Activation")
 
 def zeroModelWeight(model,attributeToZero="x_proj",weightType="weight"):
     mambaLayerAttributes = ["in_proj","conv1d","x_proj","dt_proj","out_proj"]
-    if isinstance(model,Mamba):
+    if isinstance(model,Mamba) or isinstance(model,MambaClassifier):
+        if isinstance(model,MambaClassifier):
+            model = model.mamba
         state_dict = model.state_dict()
 
         # state_dict["layers.0.mixer."+attributeToZero+"."+weightType] = torch.zeros_like(state_dict["layers.0.mixer."+attributeToZero+"."+weightType] )

@@ -1,9 +1,9 @@
 from torch import nn, cat, exp, autograd,stack, sin, cos, is_tensor,normal,optim, from_numpy,tensor
 import numpy as np
 from qutils.tictoc import timer
-from qutils.trialSolution import Sin
+from qutils.ml.trialSolution import Sin
 from qutils.integrators import ode45
-from qutils.mlExtras import findDecAcc
+from qutils.ml.extras import findDecAcc
 
 def genTimeDomain(numSegments,pts,ptsPerSeg,tStart,tEnd):
     if int(pts) != int(np.sum(ptsPerSeg)):

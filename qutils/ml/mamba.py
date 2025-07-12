@@ -397,3 +397,28 @@ class RMSNorm(nn.Module):
         output = x * torch.rsqrt(x.pow(2).mean(-1, keepdim=True) + self.eps) * self.weight
 
         return output
+
+class MambaClassifier(nn.Module):
+    def __init__(self,config, input_size, hidden_size, num_layers, num_classes):
+        super(MambaClassifier, self).__init__()
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+
+        self.mamba = Mamba(config)
+        self.fc = nn.Linear(hidden_size, num_classes)
+        
+    def forward(self, x):
+        """
+        x: [batch_size, seq_length, input_size]
+        """
+        
+        h_n = self.mamba(x) # [batch_size, seq_length, hidden_size]
+        
+        # h_n is shape [batch_size, seq_length, hidden_size].
+        # We typically take the last layer's hidden state: h_n[:,-1,:]
+        last_hidden = h_n[:,-1,:]  # [batch_size, hidden_size]
+        
+        # Pass the last hidden state through a linear layer for classification
+        logits = self.fc(last_hidden)  # [batch_size, num_classes]
+        
+        return logits
