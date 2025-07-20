@@ -3,7 +3,7 @@ import numpy as np
 from qutils.tictoc import timer
 from qutils.ml.trialSolution import Sin
 from qutils.integrators import ode45
-from qutils.ml.extras import findDecAcc
+from qutils.ml.utils import findDecAcc
 
 def genTimeDomain(numSegments,pts,ptsPerSeg,tStart,tEnd):
     if int(pts) != int(np.sum(ptsPerSeg)):

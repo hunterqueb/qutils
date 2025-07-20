@@ -4,7 +4,7 @@ import torch
 import numpy as np
 from qutils.tictoc import timer
 import torch.utils.data as data
-from qutils.ml.extras import findDecAcc
+from qutils.ml.utils import findDecAcc
 
 try:
     profile  # Check if the decorator is already defined (when running with memory_profiler)

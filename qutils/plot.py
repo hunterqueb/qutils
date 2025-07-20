@@ -424,6 +424,6 @@ def plotStatePredictions(model,t,truth,train_in,test_in,train_size,test_size, se
         plt.legend(loc='upper left', bbox_to_anchor=(1,0.5))
         plt.tight_layout()
     
-    from qutils.ml.extras import generateTrajectoryPrediction
+    from qutils.ml.utils import generateTrajectoryPrediction
 
     return generateTrajectoryPrediction(train_plot,test_plot,outputToc)
