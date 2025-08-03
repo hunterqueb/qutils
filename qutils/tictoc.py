@@ -14,3 +14,8 @@ class timer():
         return self.tocTime
     def getTocTime(self):
         return self.tocTime
+    def tocStr(self,str):
+        finalTime = time.perf_counter()
+        print(str)
+        print("\tElapsed time is {:.4f} seconds.".format(finalTime - self.ticTime))
+        return finalTime - self.ticTime
