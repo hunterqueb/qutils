@@ -477,6 +477,18 @@ def rmse(y_truth, y_pred,output='full',percentRMSE=False):
 
     return mse
 
+def mape(y_true, y_pred, axis=None, eps=1e-8,printOut=False):
+    y_true = np.asarray(y_true)
+    y_pred = np.asarray(y_pred)
+    denom = np.where(np.abs(y_true) < eps, np.nan, np.abs(y_true))
+    pct = np.abs((y_true - y_pred) / denom) * 100.0
+    mape = np.nanmean(pct, axis=axis)
+    if printOut:
+        print("\nMean Absolute Percentage Error")
+        for i, avg in enumerate(mape, 1):
+            print(f"Dimension {i}: {avg}")
+    return mape
+
 
 def generateTrajectoryPrediction(train_plot,test_plot,outputToc = False):
     '''
