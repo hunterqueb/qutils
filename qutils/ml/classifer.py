@@ -8,7 +8,7 @@ import pandas as pd
 
 
 
-def trainClassifier(model,optimizer,scheduler,dataloaders,criterion,num_epochs,device,schedulerPatience=5,printReport = False):
+def trainClassifier(model,optimizer,scheduler,dataloaders,criterion,num_epochs,device,schedulerPatience=5,printReport = False,classLabels=None):
     '''
     Trains a classification model using a learning rate scheduler defined by the torch.optim.lr_scheduler module.
     '''
@@ -41,7 +41,7 @@ def trainClassifier(model,optimizer,scheduler,dataloaders,criterion,num_epochs,d
         print(f"Epoch [{epoch+1}/{num_epochs}], Training Loss: {avg_train_loss:.4f}")
 
         # Validation phase
-        avg_val_loss, val_accuracy = validateMultiClassClassifier(model, val_loader, criterion, num_classes=logits.shape[1],device=device,printReport=printReport)
+        avg_val_loss, val_accuracy = validateMultiClassClassifier(model, val_loader, criterion, num_classes=logits.shape[1],device=device,printReport=printReport,classlabels=classLabels)
 
         # Step the scheduler based on validation loss
         scheduler.step(avg_val_loss)
