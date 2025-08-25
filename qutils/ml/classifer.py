@@ -60,11 +60,12 @@ def trainClassifier(model,optimizer,scheduler,dataloaders,criterion,num_epochs,d
     return timeToTrain.toc()
 
 class LSTMClassifier(nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers, num_classes):
+    def __init__(self, input_size, hidden_size, num_layers, num_classes,dropout=0.1):
         super(LSTMClassifier, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        
+        self.dropout = nn.Dropout(dropout)
+
         self.lstm = nn.LSTM(
             input_size=input_size,
             hidden_size=hidden_size,
@@ -83,7 +84,8 @@ class LSTMClassifier(nn.Module):
         # h_n is shape [num_layers, batch_size, hidden_size].
         # We typically take the last layer's hidden state: h_n[-1]
         last_hidden = h_n[-1]  # [batch_size, hidden_size]
-        
+        last_hidden = self.dropout(last_hidden)
+
         # Pass the last hidden state through a linear layer for classification
         logits = self.fc(last_hidden)  # [batch_size, num_classes]
         
