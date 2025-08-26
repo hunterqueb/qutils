@@ -50,6 +50,7 @@ def prepareThrustClassificationDatasets(yaml_config,data_config,train_ratio=0.7,
         statesArrayImpBurn = a['OEArrayImpBurn'][:,:,0:6]
         a = np.load(f"{dataLoc}/OEArrayNoThrust.npz")
         statesArrayNoThrust = a['OEArrayNoThrust'][:,:,0:6]
+        n_ic = statesArrayChemical.shape[0]
 
         if useNorm:
             R = 6378.1363 # km
@@ -75,6 +76,7 @@ def prepareThrustClassificationDatasets(yaml_config,data_config,train_ratio=0.7,
 
         a = np.load(f"{dataLoc}/statesArrayNoThrust.npz")
         statesArrayNoThrust = a['statesArrayNoThrust']
+        n_ic = statesArrayChemical.shape[0]
 
         if useNoise:
             statesArrayChemical = apply_noise(statesArrayChemical, pos_noise_std, vel_noise_std)
