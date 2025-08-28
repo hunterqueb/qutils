@@ -27,105 +27,113 @@ def run_shap_analysis(
     out_dir: str = "artifacts/shap",
     method: str = "gradshap",          # "gradshap" or "ig"
     baseline_nsamples: int = 32,
-    n_eval = 512,
+    n_eval: int | None = 512,           # None = use all from eval_loader
     ig_steps: int = 32,
     gs_samples: int = 8,
-    internal_batch_size: int = 32,     # only used by IG
+    internal_batch_size: int = 32,      # only used by IG
     use_cpu: bool = False,
     group_by: str = "true",
     seed: int = 0,
 ):
-    import os, gc
-    import numpy as np
-    import pandas as pd
-    import torch
-    from captum.attr import GradientShap, IntegratedGradients
-
     os.makedirs(out_dir, exist_ok=True)
     if torch.cuda.is_available():
         torch.cuda.synchronize(); torch.cuda.empty_cache()
 
     model.eval()
-    for p in model.parameters():
-        p.requires_grad_(False)
     if use_cpu:
         device = "cpu"
     model = model.to(device)
+    model_dtype = next(model.parameters()).dtype  # enforce everywhere
 
-    # ---- helpers ----
     @torch.no_grad()
-    def _stack_first_n_from_loader(loader, n, device_):
+    def _stack_first_n(loader, n, dev, dtype):
         xs, ys, seen = [], [], 0
         for xb, yb in loader:
             b = xb.shape[0]
-            take = min(n - seen, b)
+            take = b if (n is None) else min(n - seen, b)
             xs.append(xb[:take])
             ys.append(yb[:take])
             seen += take
-            if seen >= n:
+            if (n is not None) and (seen >= n):
                 break
-        X = torch.cat(xs, dim=0).to(device=device_, non_blocking=True).float()
-        y = torch.cat(ys, dim=0).cpu().numpy()
+        X = torch.cat(xs, dim=0).to(device=dev, dtype=dtype, non_blocking=True)
+        y = torch.cat(ys, dim=0).to("cpu").numpy()
         return X, y
 
-    if n_eval is None:
-        n_eval = len(eval_loader.dataset)
-    baselines, _ = _stack_first_n_from_loader(train_loader, baseline_nsamples, device)
-    Xev, yev = _stack_first_n_from_loader(eval_loader, n_eval, device)
-    Xev = Xev[:n_eval]; yev = yev[:n_eval]
+    # Baselines from TRAIN distribution (no OOD), cast to model dtype
+    baselines, _ = _stack_first_n(train_loader, baseline_nsamples, device, model_dtype)
 
-    def forward(x): return model(x)  # logits [B, C]
+    # Eval slice (None -> all), cast to model dtype
+    Xev, yev = _stack_first_n(eval_loader, n_eval, device, model_dtype)
+
+    # Forward must return logits [B, C] requiring grad
+    def forward(x: torch.Tensor) -> torch.Tensor:
+        out = model(x)
+        if not torch.is_tensor(out):
+            out = out[0]
+        return out
+
+    # Sanity: ensure logits require grad
+    k = min(4, Xev.shape[0])
+    with torch.enable_grad(), torch.backends.cudnn.flags(enabled=False):
+        xb_chk = Xev[:k].clone().detach().to(dtype=model_dtype).requires_grad_(True)
+        logits_chk = forward(xb_chk)                    # [k, C]
+        if logits_chk.ndim != 2:
+            raise RuntimeError(f"forward() must return [B, C], got {tuple(logits_chk.shape)}")
+        target_chk = torch.from_numpy(yev[:k]).to(xb_chk.device).long()
+        score = logits_chk.gather(1, target_chk.view(-1, 1)).sum()
+        assert score.requires_grad, "Selected logit does not require grad."
+        score.backward(retain_graph=True)
+        assert xb_chk.grad is not None, "Input grad is None."
+    del xb_chk
+    if torch.cuda.is_available(): torch.cuda.empty_cache()
 
     def _attrib_batch(xb: torch.Tensor, target_idx: torch.Tensor) -> torch.Tensor:
-        xb = xb.clone().detach().requires_grad_(True)
-        torch.set_grad_enabled(True)
-        if method.lower() == "ig":
-            expl = IntegratedGradients(forward)
-            attr_b = expl.attribute(
-                xb,
-                baselines=baselines.mean(dim=0, keepdim=True),
-                n_steps=ig_steps,
-                internal_batch_size=internal_batch_size,
-                target=target_idx,
-            )
-        else:
-            expl = GradientShap(forward)
-            attr_b = expl.attribute(
-                xb,
-                baselines=baselines,
-                n_samples=gs_samples,
-                stdevs=0.0,
-                target=target_idx,
-            )
-        torch.set_grad_enabled(False)
+        xb = xb.clone().detach().to(dtype=model_dtype).requires_grad_(True)
+        with torch.enable_grad(), torch.backends.cudnn.flags(enabled=False):
+            if method.lower() == "ig":
+                expl = IntegratedGradients(forward)
+                attr_b = expl.attribute(
+                    xb,
+                    baselines=baselines.mean(dim=0, keepdim=True),
+                    n_steps=ig_steps,
+                    internal_batch_size=internal_batch_size,
+                    target=target_idx,
+                )
+            else:
+                expl = GradientShap(forward)
+                attr_b = expl.attribute(
+                    xb,
+                    baselines=baselines,
+                    n_samples=gs_samples,
+                    stdevs=0.0,
+                    target=target_idx,
+                )
         return attr_b
 
-    # ---- streamed aggregation ----
+    # Streamed aggregation
     N_seen = 0
     T = None; D = None
     global_feat_sum = None     # (D,)
     global_time_sum = None     # (T,)
-    feature_time_sum = None    # (T, D)  << new
-    per_class_sum = {}
-    per_class_count = {}
+    feature_time_sum = None    # (T, D)
+    per_class_sum, per_class_count = {}, {}
 
-    bs = internal_batch_size
+    bs = max(1, internal_batch_size)
     for i in range(0, Xev.shape[0], bs):
         xb = Xev[i:i+bs]
         yb_true_np = yev[i:i+bs]
 
-        # targets + grouping
         if group_by == "true":
             target_idx = torch.from_numpy(yb_true_np).to(xb.device).long()
             key_np = yb_true_np
         else:
             with torch.no_grad():
-                logits_b = forward(xb)
-                pred_b = torch.argmax(logits_b, dim=1)
-            target_idx = pred_b
-            key_np = pred_b.detach().cpu().numpy()
+                pred = torch.argmax(forward(xb), dim=1)
+            target_idx = pred
+            key_np = pred.detach().cpu().numpy()
 
-        attr_b = _attrib_batch(xb, target_idx)   # (b,T,D) or (b,D)
+        attr_b = _attrib_batch(xb, target_idx)         # (b,T,D) or (b,D)
         if attr_b.ndim == 2:
             attr_b = attr_b[:, None, :]
         b, Tb, Db = attr_b.shape
@@ -133,20 +141,20 @@ def run_shap_analysis(
             T, D = Tb, Db
             global_feat_sum = torch.zeros(D, device="cpu")
             global_time_sum = torch.zeros(T, device="cpu")
-            feature_time_sum = torch.zeros(T, D, device="cpu")  # new
+            feature_time_sum = torch.zeros(T, D, device="cpu")
 
-        abs_b = attr_b.abs().detach().cpu()      # (b,T,D)
+        abs_b = attr_b.abs().detach().cpu()            # (b,T,D)
 
-        # global aggregates
+        # Global aggregates
         global_feat_sum += abs_b.mean(dim=1).sum(dim=0)  # (D,)
         global_time_sum += abs_b.mean(dim=2).sum(dim=0)  # (T,)
-        feature_time_sum += abs_b.sum(dim=0)             # (T,D)  << new
+        feature_time_sum += abs_b.sum(dim=0)             # (T,D)
 
-        # per-class aggregates (only classes present in this batch)
-        present_ids = np.unique(key_np).astype(int)
-        for c in present_ids:
-            mask_np = (key_np == c)
-            Ab = abs_b[torch.from_numpy(mask_np).bool()]
+        # Per-class (only classes present this batch)
+        present = np.unique(key_np).astype(int)
+        for c in present:
+            mask = torch.from_numpy(key_np == c).bool()
+            Ab = abs_b[mask]
             if c not in per_class_sum:
                 per_class_sum[c] = torch.zeros(T, D, device="cpu")
                 per_class_count[c] = 0
@@ -155,21 +163,20 @@ def run_shap_analysis(
 
         N_seen += b
         del attr_b, abs_b, xb
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
+        if torch.cuda.is_available(): torch.cuda.empty_cache()
         gc.collect()
 
     if feature_names is None:
         feature_names = [f"f{j}" for j in range(D)]
 
-    # finalize means
+    # Finalize means
     global_feat = (global_feat_sum / max(1, N_seen)).numpy()
     global_time = (global_time_sum / max(1, N_seen)).numpy()
-    feature_time_mean = (feature_time_sum / max(1, N_seen)).numpy()  # shape (T, D)
-    per_class = {c: (S / max(1, per_class_count[c])).numpy() for c, S in per_class_sum.items()}
+    feature_time_mean = (feature_time_sum / max(1, N_seen)).numpy()  # (T, D)
+    per_class = {c: (S / max(1, per_class_count[c])).numpy()
+                 for c, S in per_class_sum.items()}
 
-    # save CSVs (existing)
-    import pandas as pd
+    # Save artifacts
     pd.DataFrame({"feature": feature_names, "mean_abs_attr": global_feat}) \
       .sort_values("mean_abs_attr", ascending=False) \
       .to_csv(os.path.join(out_dir, "global_feature_importance.csv"), index=False)
@@ -177,21 +184,18 @@ def run_shap_analysis(
     pd.DataFrame({"t": np.arange(T), "mean_abs_attr": global_time}) \
       .to_csv(os.path.join(out_dir, "global_time_importance.csv"), index=False)
 
-    def _name_for(c: int) -> str:
-        return (classlabels[c] if isinstance(c, int) and 0 <= c < len(classlabels) else str(c))
-
     for c in sorted(per_class.keys()):
         M = per_class[c]
         df = pd.DataFrame(M, columns=feature_names)
         df.insert(0, "t", np.arange(M.shape[0]))
-        df.to_csv(os.path.join(out_dir, f"per_class_t_by_feature_c{c}_{_name_for(c)}.csv"), index=False)
+        name = (classlabels[c] if 0 <= c < len(classlabels) else str(c))
+        df.to_csv(os.path.join(out_dir, f"per_class_t_by_feature_c{c}_{name}.csv"), index=False)
 
-    # save NEW: feature importance over time (all samples)
     df_ft = pd.DataFrame(feature_time_mean, columns=feature_names)
     df_ft.insert(0, "t", np.arange(feature_time_mean.shape[0]))
     df_ft.to_csv(os.path.join(out_dir, "feature_time_importance.csv"), index=False)
 
-    # quick report
+    # Report
     order = np.argsort(global_feat)[::-1][:10]
     for idx in order:
         print(f"[SHAP] {feature_names[idx]:>12s}: {global_feat[idx]:.6g}")
