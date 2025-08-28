@@ -8,3 +8,4 @@ from .regression import *
 from .superweight import *
 from .trialSolution import *
 from .utils import *
+from .shap import *
