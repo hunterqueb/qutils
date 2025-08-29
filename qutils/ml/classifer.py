@@ -40,56 +40,53 @@ def prepareThrustClassificationDatasets(yaml_config,data_config,train_ratio=0.7,
     print(f"Training data location: {dataLoc}")
     print(f"Test data location: {dataLoc_test}")
 
+    a = np.load(f"{dataLoc}/statesArrayChemical.npz")
+    statesArrayChemical = a['statesArrayChemical']
+    a = np.load(f"{dataLoc}/statesArrayElectric.npz")
+    statesArrayElectric = a['statesArrayElectric']
+    a = np.load(f"{dataLoc}/statesArrayImpBurn.npz")
+    statesArrayImpBurn = a['statesArrayImpBurn']
+    a = np.load(f"{dataLoc}/statesArrayNoThrust.npz")
+    statesArrayNoThrust = a['statesArrayNoThrust']
+    n_ic = statesArrayChemical.shape[0]
+
+    if useNoise:
+        statesArrayChemical = apply_noise(statesArrayChemical, pos_noise_std, vel_noise_std)
+        statesArrayElectric = apply_noise(statesArrayElectric, pos_noise_std, vel_noise_std)
+        statesArrayImpBurn = apply_noise(statesArrayImpBurn, pos_noise_std, vel_noise_std)
+        statesArrayNoThrust = apply_noise(statesArrayNoThrust, pos_noise_std, vel_noise_std)
+    if useNorm:
+        from qutils.orbital import dim2NonDim6
+        for i in range(n_ic):
+            statesArrayChemical[i,:,:] = dim2NonDim6(statesArrayChemical[i,:,:])
+            statesArrayElectric[i,:,:] = dim2NonDim6(statesArrayElectric[i,:,:])
+            statesArrayImpBurn[i,:,:] = dim2NonDim6(statesArrayImpBurn[i,:,:])
+            statesArrayNoThrust[i,:,:] = dim2NonDim6(statesArrayNoThrust[i,:,:])
+
     # get npz files in folder and load them into script
     if useOE:
         a = np.load(f"{dataLoc}/OEArrayChemical.npz")
-        statesArrayChemical = a['OEArrayChemical'][:,:,0:6]
+        OEArrayChemical = a['OEArrayChemical'][:,:,0:6]
         a = np.load(f"{dataLoc}/OEArrayElectric.npz")
-        statesArrayElectric = a['OEArrayElectric'][:,:,0:6]
+        OEArrayElectric = a['OEArrayElectric'][:,:,0:6]
         a = np.load(f"{dataLoc}/OEArrayImpBurn.npz")
-        statesArrayImpBurn = a['OEArrayImpBurn'][:,:,0:6]
+        OEArrayImpBurn = a['OEArrayImpBurn'][:,:,0:6]
         a = np.load(f"{dataLoc}/OEArrayNoThrust.npz")
-        statesArrayNoThrust = a['OEArrayNoThrust'][:,:,0:6]
+        OEArrayNoThrust = a['OEArrayNoThrust'][:,:,0:6]
         n_ic = statesArrayChemical.shape[0]
 
         if useNorm:
             R = 6378.1363 # km
-            statesArrayChemical[:,:,0] = statesArrayChemical[:,:,0] / R
-            statesArrayElectric[:,:,0] = statesArrayElectric[:,:,0] / R
-            statesArrayImpBurn[:,:,0] = statesArrayImpBurn[:,:,0] / R
-            statesArrayNoThrust[:,:,0] = statesArrayNoThrust[:,:,0] / R
+            OEArrayChemical[:,:,0] = OEArrayChemical[:,:,0] / R
+            OEArrayElectric[:,:,0] = OEArrayElectric[:,:,0] / R
+            OEArrayImpBurn[:,:,0] = OEArrayImpBurn[:,:,0] / R
+            OEArrayNoThrust[:,:,0] = OEArrayNoThrust[:,:,0] / R
         if useNoise:
-            statesArrayChemical = apply_noise(statesArrayChemical, pos_noise_std, vel_noise_std)
-            statesArrayElectric = apply_noise(statesArrayElectric, pos_noise_std, vel_noise_std)
-            statesArrayImpBurn = apply_noise(statesArrayImpBurn, pos_noise_std, vel_noise_std)
-            statesArrayNoThrust = apply_noise(statesArrayNoThrust, pos_noise_std, vel_noise_std)
+            OEArrayChemical = apply_noise(OEArrayChemical, pos_noise_std, vel_noise_std)
+            OEArrayElectric = apply_noise(OEArrayElectric, pos_noise_std, vel_noise_std)
+            OEArrayImpBurn = apply_noise(OEArrayImpBurn, pos_noise_std, vel_noise_std)
+            OEArrayNoThrust = apply_noise(OEArrayNoThrust, pos_noise_std, vel_noise_std)
 
-    else:
-        a = np.load(f"{dataLoc}/statesArrayChemical.npz")
-        statesArrayChemical = a['statesArrayChemical']
-
-        a = np.load(f"{dataLoc}/statesArrayElectric.npz")
-        statesArrayElectric = a['statesArrayElectric']
-
-        a = np.load(f"{dataLoc}/statesArrayImpBurn.npz")
-        statesArrayImpBurn = a['statesArrayImpBurn']
-
-        a = np.load(f"{dataLoc}/statesArrayNoThrust.npz")
-        statesArrayNoThrust = a['statesArrayNoThrust']
-        n_ic = statesArrayChemical.shape[0]
-
-        if useNoise:
-            statesArrayChemical = apply_noise(statesArrayChemical, pos_noise_std, vel_noise_std)
-            statesArrayElectric = apply_noise(statesArrayElectric, pos_noise_std, vel_noise_std)
-            statesArrayImpBurn = apply_noise(statesArrayImpBurn, pos_noise_std, vel_noise_std)
-            statesArrayNoThrust = apply_noise(statesArrayNoThrust, pos_noise_std, vel_noise_std)
-        if useNorm:
-            from qutils.orbital import dim2NonDim6
-            for i in range(n_ic):
-                statesArrayChemical[i,:,:] = dim2NonDim6(statesArrayChemical[i,:,:])
-                statesArrayElectric[i,:,:] = dim2NonDim6(statesArrayElectric[i,:,:])
-                statesArrayImpBurn[i,:,:] = dim2NonDim6(statesArrayImpBurn[i,:,:])
-                statesArrayNoThrust[i,:,:] = dim2NonDim6(statesArrayNoThrust[i,:,:])
     del a
 
     noThrustLabel = 0
@@ -126,10 +123,10 @@ def prepareThrustClassificationDatasets(yaml_config,data_config,train_ratio=0.7,
 
         dataset = np.concatenate((energyChemical, energyElectric, energyImpBurn, energyNoThrust), axis=0)
     if useEnergy and useOE:
-        combinedChemical = np.concatenate((statesArrayChemical,energyChemical),axis=2) 
-        combinedElectric = np.concatenate((statesArrayElectric,energyElectric),axis=2) 
-        combinedImpBurn = np.concatenate((statesArrayImpBurn,energyImpBurn),axis=2) 
-        combinedNoThrust = np.concatenate((statesArrayNoThrust,energyNoThrust),axis=2) 
+        combinedChemical = np.concatenate((OEArrayChemical,energyChemical),axis=2) 
+        combinedElectric = np.concatenate((OEArrayElectric,energyElectric),axis=2) 
+        combinedImpBurn = np.concatenate((OEArrayImpBurn,energyImpBurn),axis=2) 
+        combinedNoThrust = np.concatenate((OEArrayNoThrust,energyNoThrust),axis=2) 
         dataset = np.concatenate((combinedChemical, combinedElectric, combinedImpBurn, combinedNoThrust), axis=0)
 
     dataset_label = np.concatenate((labelsChemical, labelsElectric, labelsImpBurn, labelsNoThrust), axis=0)
