@@ -203,19 +203,51 @@ def run_shap_analysis(
 
     return {"N": int(N_seen), "T": int(T), "D": int(D), "out_dir": out_dir}
 
-def plot_global_feature_importance(shap_dir: str, topk: int = 20, save: bool = True):
+def plot_global_feature_importance(
+    shap_dir: str,
+    topk: int = 20,
+    save: bool = True,
+    as_percent: bool = False,
+):
+    """
+    Plot global feature importance. If `as_percent` is True, bars show each feature's
+    share (%) of the total mean_abs_attr within the top-k subset.
+    """
     p = os.path.join(shap_dir, "global_feature_importance.csv")
-    df = pd.read_csv(p).sort_values("mean_abs_attr", ascending=False).head(topk)
-    fig, ax = plt.subplots(figsize=(max(6, 0.5*len(df)), max(4, 0.35*len(df))))
-    ax.barh(df["feature"], df["mean_abs_attr"])
+    df = pd.read_csv(p).sort_values("mean_abs_attr", ascending=False).head(topk).copy()
+
+    values = df["mean_abs_attr"].to_numpy()
+    if as_percent:
+        total = float(values.sum())
+        values_to_plot = np.zeros_like(values, dtype=float) if total == 0 else (values / total * 100.0)
+    else:
+        values_to_plot = values
+
+    fig, ax = plt.subplots(
+        figsize=(max(6, 0.5 * len(df)), max(4, 0.35 * len(df)))
+    )
+    ax.barh(df["feature"], values_to_plot)
     ax.invert_yaxis()
-    ax.set_xlabel("mean |attribution|")
+
+    if as_percent:
+        from matplotlib.ticker import PercentFormatter
+        ax.xaxis.set_major_formatter(PercentFormatter(xmax=100))
+        ax.set_xlabel("mean |attribution| (% of top-k total)")
+        fname_suffix = "_pct"
+    else:
+        ax.set_xlabel("mean |attribution|")
+        fname_suffix = ""
+
     ax.set_title(f"Global Feature Importance (top {len(df)})")
     fig.tight_layout()
+
     if save:
-        out = os.path.join(shap_dir, f"plot_global_feature_importance_top{len(df)}.png")
+        out = os.path.join(
+            shap_dir, f"plot_global_feature_importance_top{len(df)}{fname_suffix}.png"
+        )
         fig.savefig(out, dpi=200, bbox_inches="tight")
         print("saved:", out)
+
     return fig, ax
 
 def plot_global_time_importance(shap_dir: str, save: bool = True):
