@@ -8,12 +8,24 @@ import pandas as pd
 
 
 def apply_noise(data, pos_noise_std, vel_noise_std):
-    mid = data.shape[1] // 2  # Split index
-    pos_noise = np.random.normal(0, pos_noise_std, size=data[:, :mid].shape)
-    vel_noise = np.random.normal(0, vel_noise_std, size=data[:, mid:].shape)
+    # assumes data shape is (num_samples, seq_length, 6)
+    mid = data.shape[2] // 2  # Split index
+    pos_noise = np.random.normal(0, pos_noise_std, size=data[:, :, :mid].shape)
+    vel_noise = np.random.normal(0, vel_noise_std, size=data[:, :, mid:].shape)
     noisy_data = data.copy()
-    noisy_data[:, :mid] += pos_noise
-    noisy_data[:, mid:] += vel_noise
+    noisy_data[:, :, :mid] += pos_noise
+    noisy_data[:, :, mid:] += vel_noise
+    return noisy_data
+
+def apply_noise_OE(data, a_noise_std, e_noise_std, i_noise_std, raan_noise_std, argp_noise_std, nu_noise_std):
+    # assumes data shape is (num_samples, seq_length, 6)
+    noisy_data = data.copy()
+    noisy_data[:,:,0] += np.random.normal(0, a_noise_std, size=data[:,:,0].shape)      # semi-major axis
+    noisy_data[:,:,1] += np.random.normal(0, e_noise_std, size=data[:,:,1].shape)      # eccentricity
+    noisy_data[:,:,2] += np.random.normal(0, i_noise_std, size=data[:,:,2].shape)      # inclination
+    noisy_data[:,:,3] += np.random.normal(0, raan_noise_std, size=data[:,:,3].shape)   # right ascension of ascending node
+    noisy_data[:,:,4] += np.random.normal(0, argp_noise_std, size=data[:,:,4].shape)   # argument of perigee
+    noisy_data[:,:,5] += np.random.normal(0, nu_noise_std, size=data[:,:,5].shape)     # true anomaly
     return noisy_data
 
 def prepareThrustClassificationDatasets(yaml_config,data_config,train_ratio=0.7,val_ratio=0.15,test_ratio=0.15,pos_noise_std=1e-3,vel_noise_std=1e-3,batch_size=16,output_np=False):
