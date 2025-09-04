@@ -170,17 +170,18 @@ def prepareThrustClassificationDatasets(yaml_config,data_config,train_ratio=0.7,
     val_data,    val_label    = dataset[val_mask],   dataset_label[val_mask]
 
     if test_set != train_set or test_systems != systems:
-        n_ic = statesArrayChemical.shape[0]             
 
         if useOE:
-            a = np.load(f"{dataLoc}/OEArrayChemical.npz")
+            a = np.load(f"{dataLoc_test}/OEArrayChemical.npz")
             statesArrayChemical = a['OEArrayChemical'][:,:,0:6]
-            a = np.load(f"{dataLoc}/OEArrayElectric.npz")
+            a = np.load(f"{dataLoc_test}/OEArrayElectric.npz")
             statesArrayElectric = a['OEArrayElectric'][:,:,0:6]
-            a = np.load(f"{dataLoc}/OEArrayImpBurn.npz")
+            a = np.load(f"{dataLoc_test}/OEArrayImpBurn.npz")
             statesArrayImpBurn = a['OEArrayImpBurn'][:,:,0:6]
-            a = np.load(f"{dataLoc}/OEArrayNoThrust.npz")
+            a = np.load(f"{dataLoc_test}/OEArrayNoThrust.npz")
             statesArrayNoThrust = a['OEArrayNoThrust'][:,:,0:6]
+
+            n_ic = statesArrayChemical.shape[0]                 
 
             if useNorm:
                 R = 6378.1363 # km
@@ -196,14 +197,16 @@ def prepareThrustClassificationDatasets(yaml_config,data_config,train_ratio=0.7,
             dataset_test = np.concatenate((statesArrayChemical, statesArrayElectric, statesArrayImpBurn, statesArrayNoThrust), axis=0)
 
         else:
-            a = np.load(f"{dataLoc}/statesArrayChemical.npz")
+            a = np.load(f"{dataLoc_test}/statesArrayChemical.npz")
             statesArrayChemical = a['statesArrayChemical']
-            a = np.load(f"{dataLoc}/statesArrayElectric.npz")
+            a = np.load(f"{dataLoc_test}/statesArrayElectric.npz")
             statesArrayElectric = a['statesArrayElectric']
-            a = np.load(f"{dataLoc}/statesArrayImpBurn.npz")
+            a = np.load(f"{dataLoc_test}/statesArrayImpBurn.npz")
             statesArrayImpBurn = a['statesArrayImpBurn']
-            a = np.load(f"{dataLoc}/statesArrayNoThrust.npz")
+            a = np.load(f"{dataLoc_test}/statesArrayNoThrust.npz")
             statesArrayNoThrust = a['statesArrayNoThrust']
+        
+            n_ic = statesArrayChemical.shape[0]             
 
             if useNoise:
                 statesArrayChemical = apply_noise(statesArrayChemical, pos_noise_std, vel_noise_std)
