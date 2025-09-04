@@ -67,38 +67,39 @@ def prepareThrustClassificationDatasets(yaml_config,data_config,train_ratio=0.7,
         statesArrayElectric = apply_noise(statesArrayElectric, pos_noise_std, vel_noise_std)
         statesArrayImpBurn = apply_noise(statesArrayImpBurn, pos_noise_std, vel_noise_std)
         statesArrayNoThrust = apply_noise(statesArrayNoThrust, pos_noise_std, vel_noise_std)
-    if useNorm:
+    if useOE:
+        # convert to OE 
+        from qutils.orbital import ECI2OE
+        OEArrayChemical = np.zeros((systems,numMinProp,7))
+        OEArrayElectric = np.zeros((systems,numMinProp,7))
+        OEArrayImpBurn = np.zeros((systems,numMinProp,7))
+        OEArrayNoThrust = np.zeros((systems,numMinProp,7))
+
+        for i in range(systems):
+            for j in range(numMinProp):
+                OEArrayChemical[i,j,:] = ECI2OE(statesArrayChemical[i,j,0:3],statesArrayChemical[i,j,3:6])
+                OEArrayElectric[i,j,:] = ECI2OE(statesArrayElectric[i,j,0:3],statesArrayElectric[i,j,3:6])
+                OEArrayImpBurn[i,j,:] = ECI2OE(statesArrayImpBurn[i,j,0:3],statesArrayImpBurn[i,j,3:6])
+                OEArrayNoThrust[i,j,:] = ECI2OE(statesArrayNoThrust[i,j,0:3],statesArrayNoThrust[i,j,3:6])
+        if useNorm:
+            R = 6378.1363
+            OEArrayChemical[:,:,0] = OEArrayChemical[:,:,0] / R
+            OEArrayElectric[:,:,0] = OEArrayElectric[:,:,0] / R
+            OEArrayImpBurn[:,:,0] = OEArrayImpBurn[:,:,0] / R
+            OEArrayNoThrust[:,:,0] = OEArrayNoThrust[:,:,0] / R
+
+        statesArrayChemical = OEArrayChemical[:,:,0:6]
+        statesArrayElectric = OEArrayElectric[:,:,0:6]
+        statesArrayImpBurn = OEArrayImpBurn[:,:,0:6]
+        statesArrayNoThrust = OEArrayNoThrust[:,:,0:6]
+
+    if useNorm and not useOE:
         from qutils.orbital import dim2NonDim6
         for i in range(n_ic):
             statesArrayChemical[i,:,:] = dim2NonDim6(statesArrayChemical[i,:,:])
             statesArrayElectric[i,:,:] = dim2NonDim6(statesArrayElectric[i,:,:])
             statesArrayImpBurn[i,:,:] = dim2NonDim6(statesArrayImpBurn[i,:,:])
             statesArrayNoThrust[i,:,:] = dim2NonDim6(statesArrayNoThrust[i,:,:])
-
-    # get npz files in folder and load them into script
-    if useOE:
-        a = np.load(f"{dataLoc}/OEArrayChemical.npz")
-        OEArrayChemical = a['OEArrayChemical'][:,:,0:6]
-        a = np.load(f"{dataLoc}/OEArrayElectric.npz")
-        OEArrayElectric = a['OEArrayElectric'][:,:,0:6]
-        a = np.load(f"{dataLoc}/OEArrayImpBurn.npz")
-        OEArrayImpBurn = a['OEArrayImpBurn'][:,:,0:6]
-        a = np.load(f"{dataLoc}/OEArrayNoThrust.npz")
-        OEArrayNoThrust = a['OEArrayNoThrust'][:,:,0:6]
-        n_ic = statesArrayChemical.shape[0]
-
-        if useNorm:
-            R = 6378.1363 # km
-            OEArrayChemical[:,:,0] = OEArrayChemical[:,:,0] / R
-            OEArrayElectric[:,:,0] = OEArrayElectric[:,:,0] / R
-            OEArrayImpBurn[:,:,0] = OEArrayImpBurn[:,:,0] / R
-            OEArrayNoThrust[:,:,0] = OEArrayNoThrust[:,:,0] / R
-        if useNoise:
-            OEArrayChemical = apply_noise(OEArrayChemical, pos_noise_std, vel_noise_std)
-            OEArrayElectric = apply_noise(OEArrayElectric, pos_noise_std, vel_noise_std)
-            OEArrayImpBurn = apply_noise(OEArrayImpBurn, pos_noise_std, vel_noise_std)
-            OEArrayNoThrust = apply_noise(OEArrayNoThrust, pos_noise_std, vel_noise_std)
-
     del a
 
     noThrustLabel = 0
@@ -171,57 +172,59 @@ def prepareThrustClassificationDatasets(yaml_config,data_config,train_ratio=0.7,
 
     if test_set != train_set or test_systems != systems:
 
+        a = np.load(f"{dataLoc_test}/statesArrayChemical.npz")
+        statesArrayChemical = a['statesArrayChemical']
+        a = np.load(f"{dataLoc_test}/statesArrayElectric.npz")
+        statesArrayElectric = a['statesArrayElectric']
+        a = np.load(f"{dataLoc_test}/statesArrayImpBurn.npz")
+        statesArrayImpBurn = a['statesArrayImpBurn']
+        a = np.load(f"{dataLoc_test}/statesArrayNoThrust.npz")
+        statesArrayNoThrust = a['statesArrayNoThrust']
+        n_ic = statesArrayChemical.shape[0]
+
+        if useNoise:
+            statesArrayChemical = apply_noise(statesArrayChemical, pos_noise_std, vel_noise_std)
+            statesArrayElectric = apply_noise(statesArrayElectric, pos_noise_std, vel_noise_std)
+            statesArrayImpBurn = apply_noise(statesArrayImpBurn, pos_noise_std, vel_noise_std)
+            statesArrayNoThrust = apply_noise(statesArrayNoThrust, pos_noise_std, vel_noise_std)
         if useOE:
-            a = np.load(f"{dataLoc_test}/OEArrayChemical.npz")
-            statesArrayChemical = a['OEArrayChemical'][:,:,0:6]
-            a = np.load(f"{dataLoc_test}/OEArrayElectric.npz")
-            statesArrayElectric = a['OEArrayElectric'][:,:,0:6]
-            a = np.load(f"{dataLoc_test}/OEArrayImpBurn.npz")
-            statesArrayImpBurn = a['OEArrayImpBurn'][:,:,0:6]
-            a = np.load(f"{dataLoc_test}/OEArrayNoThrust.npz")
-            statesArrayNoThrust = a['OEArrayNoThrust'][:,:,0:6]
+            # convert to OE 
+            from qutils.orbital import ECI2OE
+            OEArrayChemical = np.zeros((test_systems,numMinProp,7))
+            OEArrayElectric = np.zeros((test_systems,numMinProp,7))
+            OEArrayImpBurn = np.zeros((test_systems,numMinProp,7))
+            OEArrayNoThrust = np.zeros((test_systems,numMinProp,7))
 
-            n_ic = statesArrayChemical.shape[0]                 
-
+            for i in range(test_systems):
+                for j in range(numMinProp):
+                    OEArrayChemical[i,j,:] = ECI2OE(statesArrayChemical[i,j,0:3],statesArrayChemical[i,j,3:6])
+                    OEArrayElectric[i,j,:] = ECI2OE(statesArrayElectric[i,j,0:3],statesArrayElectric[i,j,3:6])
+                    OEArrayImpBurn[i,j,:] = ECI2OE(statesArrayImpBurn[i,j,0:3],statesArrayImpBurn[i,j,3:6])
+                    OEArrayNoThrust[i,j,:] = ECI2OE(statesArrayNoThrust[i,j,0:3],statesArrayNoThrust[i,j,3:6])
             if useNorm:
-                R = 6378.1363 # km
-                statesArrayChemical[:,:,0] = statesArrayChemical[:,:,0] / R
-                statesArrayElectric[:,:,0] = statesArrayElectric[:,:,0] / R
-                statesArrayImpBurn[:,:,0] = statesArrayImpBurn[:,:,0] / R
-                statesArrayNoThrust[:,:,0] = statesArrayNoThrust[:,:,0] / R
-            if useNoise:
-                statesArrayChemical = apply_noise(statesArrayChemical, pos_noise_std, vel_noise_std)
-                statesArrayElectric = apply_noise(statesArrayElectric, pos_noise_std, vel_noise_std)
-                statesArrayImpBurn = apply_noise(statesArrayImpBurn, pos_noise_std, vel_noise_std)
-                statesArrayNoThrust = apply_noise(statesArrayNoThrust, pos_noise_std, vel_noise_std)
-            dataset_test = np.concatenate((statesArrayChemical, statesArrayElectric, statesArrayImpBurn, statesArrayNoThrust), axis=0)
+                R = 6378.1363
+                OEArrayChemical[:,:,0] = OEArrayChemical[:,:,0] / R
+                OEArrayElectric[:,:,0] = OEArrayElectric[:,:,0] / R
+                OEArrayImpBurn[:,:,0] = OEArrayImpBurn[:,:,0] / R
+                OEArrayNoThrust[:,:,0] = OEArrayNoThrust[:,:,0] / R
 
-        else:
-            a = np.load(f"{dataLoc_test}/statesArrayChemical.npz")
-            statesArrayChemical = a['statesArrayChemical']
-            a = np.load(f"{dataLoc_test}/statesArrayElectric.npz")
-            statesArrayElectric = a['statesArrayElectric']
-            a = np.load(f"{dataLoc_test}/statesArrayImpBurn.npz")
-            statesArrayImpBurn = a['statesArrayImpBurn']
-            a = np.load(f"{dataLoc_test}/statesArrayNoThrust.npz")
-            statesArrayNoThrust = a['statesArrayNoThrust']
-        
-            n_ic = statesArrayChemical.shape[0]             
+            statesArrayChemical = OEArrayChemical[:,:,0:6]
+            statesArrayElectric = OEArrayElectric[:,:,0:6]
+            statesArrayImpBurn = OEArrayImpBurn[:,:,0:6]
+            statesArrayNoThrust = OEArrayNoThrust[:,:,0:6]
 
-            if useNoise:
-                statesArrayChemical = apply_noise(statesArrayChemical, pos_noise_std, vel_noise_std)
-                statesArrayElectric = apply_noise(statesArrayElectric, pos_noise_std, vel_noise_std)
-                statesArrayImpBurn = apply_noise(statesArrayImpBurn, pos_noise_std, vel_noise_std)
-                statesArrayNoThrust = apply_noise(statesArrayNoThrust, pos_noise_std, vel_noise_std)
-            if useNorm:
-                for i in range(n_ic):
-                    statesArrayChemical[i,:,:] = dim2NonDim6(statesArrayChemical[i,:,:])
-                    statesArrayElectric[i,:,:] = dim2NonDim6(statesArrayElectric[i,:,:])
-                    statesArrayImpBurn[i,:,:] = dim2NonDim6(statesArrayImpBurn[i,:,:])
-                    statesArrayNoThrust[i,:,:] = dim2NonDim6(statesArrayNoThrust[i,:,:])
-            dataset_test = np.concatenate((statesArrayChemical, statesArrayElectric, statesArrayImpBurn, statesArrayNoThrust), axis=0)
+        if useNorm and not useOE:
+            from qutils.orbital import dim2NonDim6
+            for i in range(n_ic):
+                statesArrayChemical[i,:,:] = dim2NonDim6(statesArrayChemical[i,:,:])
+                statesArrayElectric[i,:,:] = dim2NonDim6(statesArrayElectric[i,:,:])
+                statesArrayImpBurn[i,:,:] = dim2NonDim6(statesArrayImpBurn[i,:,:])
+                statesArrayNoThrust[i,:,:] = dim2NonDim6(statesArrayNoThrust[i,:,:])
+        del a
 
+        dataset_test = np.concatenate((statesArrayChemical, statesArrayElectric, statesArrayImpBurn, statesArrayNoThrust), axis=0)
         if useEnergy:
+            from qutils.orbital import orbitalEnergy
             energyChemical = np.zeros((n_ic,statesArrayChemical.shape[1],1))
             energyElectric= np.zeros((n_ic,statesArrayChemical.shape[1],1))
             energyImpBurn= np.zeros((n_ic,statesArrayChemical.shape[1],1))
@@ -237,12 +240,14 @@ def prepareThrustClassificationDatasets(yaml_config,data_config,train_ratio=0.7,
                 energyElectric[:,:,0] = energyElectric[:,:,0] / normingEnergy
                 energyImpBurn[:,:,0] = energyImpBurn[:,:,0] / normingEnergy
                 energyNoThrust[:,:,0] = energyNoThrust[:,:,0] / normingEnergy
+
             dataset_test = np.concatenate((energyChemical, energyElectric, energyImpBurn, energyNoThrust), axis=0)
+
         if useEnergy and useOE:
-            combinedChemical = np.concatenate((statesArrayChemical,energyChemical),axis=2) 
-            combinedElectric = np.concatenate((statesArrayElectric,energyElectric),axis=2) 
-            combinedImpBurn = np.concatenate((statesArrayImpBurn,energyImpBurn),axis=2) 
-            combinedNoThrust = np.concatenate((statesArrayNoThrust,energyNoThrust),axis=2) 
+            combinedChemical = np.concatenate((OEArrayChemical,energyChemical),axis=2) 
+            combinedElectric = np.concatenate((OEArrayElectric,energyElectric),axis=2) 
+            combinedImpBurn = np.concatenate((OEArrayImpBurn,energyImpBurn),axis=2) 
+            combinedNoThrust = np.concatenate((OEArrayNoThrust,energyNoThrust),axis=2) 
             dataset_test = np.concatenate((combinedChemical, combinedElectric, combinedImpBurn, combinedNoThrust), axis=0)
 
         labelsChemical = np.full((n_ic,1),chemicalLabel)
