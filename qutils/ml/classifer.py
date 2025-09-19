@@ -5,6 +5,7 @@ from qutils.tictoc import timer
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.metrics import classification_report, confusion_matrix
 import pandas as pd
+import torch.nn.functional as F
 
 
 def apply_noise(data, pos_noise_std, vel_noise_std):
@@ -356,11 +357,12 @@ def trainClassifier(model,optimizer,scheduler,dataloaders,criterion,num_epochs,d
     return timeToTrain.toc()
 
 class LSTMClassifier(nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers, num_classes,dropout=0.1):
+    def __init__(self, input_size, hidden_size, num_layers, num_classes,dropout=0.1,SA = False):
         super(LSTMClassifier, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.dropout = nn.Dropout(dropout)
+        self.SA = SA
 
         self.lstm = nn.LSTM(
             input_size=input_size,
@@ -368,6 +370,11 @@ class LSTMClassifier(nn.Module):
             num_layers=num_layers,
             batch_first=True
         )
+
+        # Self-attention layer
+        self.self_attention = SelfAttentionLayer(hidden_size)
+
+
         self.fc = nn.Linear(hidden_size, num_classes)
         
     def forward(self, x):
@@ -380,6 +387,10 @@ class LSTMClassifier(nn.Module):
         # h_n is shape [num_layers, batch_size, hidden_size].
         # We typically take the last layer's hidden state: h_n[-1]
         last_hidden = h_n[-1]  # [batch_size, hidden_size]
+        if self.SA:
+            last_hidden, attention_weights = self.self_attention(last_hidden,mask=None)
+        else:
+            pass
         last_hidden = self.dropout(last_hidden)
 
         # Pass the last hidden state through a linear layer for classification
@@ -387,6 +398,37 @@ class LSTMClassifier(nn.Module):
         
         return logits
         
+class SelfAttentionLayer(nn.Module):
+   def __init__(self, feature_size):
+       super(SelfAttentionLayer, self).__init__()
+       self.feature_size = feature_size
+
+       # Linear transformations for Q, K, V from the same source
+       self.key = nn.Linear(feature_size, feature_size)
+       self.query = nn.Linear(feature_size, feature_size)
+       self.value = nn.Linear(feature_size, feature_size)
+
+   def forward(self, x, mask=None):
+       # Apply linear transformations
+       keys = self.key(x)
+       queries = self.query(x)
+       values = self.value(x)
+
+       # Scaled dot-product attention
+       scores = torch.matmul(queries, keys.transpose(-2, -1)) / torch.sqrt(torch.tensor(self.feature_size, dtype=torch.float32))
+
+       # Apply mask (if provided)
+       if mask is not None:
+           scores = scores.masked_fill(mask == 0, -1e9)
+
+       # Apply softmax
+       attention_weights = F.softmax(scores, dim=-1)
+
+       # Multiply weights with values
+       output = torch.matmul(attention_weights, values)
+
+       return output, attention_weights
+
 
 #tranformer classifier for time series data
 class TransformerClassifier(nn.Module):

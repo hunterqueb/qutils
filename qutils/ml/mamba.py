@@ -200,14 +200,14 @@ class MambaBlock(nn.Module):
         # y : (B, L, ED)
 
         # save hidden state y for classifier 
-        self.y = y
+        # self.y = y
 
         # z branch
         z = activationFunc(z)
 
         output = y * z
 
-        # is the hidden state output for classifier better here?
+        # is the hidden state output for classifier better here? -- YES, seems better to have it after the multiplication
         self.y = output
         output = self.out_proj(output) # (B, L, D)
 
