@@ -29,26 +29,54 @@ def apply_noise_OE(data, a_noise_std, e_noise_std, i_noise_std, raan_noise_std, 
     noisy_data[:,:,5] += np.random.normal(0, nu_noise_std, size=data[:,:,5].shape)     # true anomaly
     return noisy_data
 
-def prepareThrustClassificationDatasets(yaml_config,data_config,train_ratio=0.7,val_ratio=0.15,test_ratio=0.15,pos_noise_std=1e-3,vel_noise_std=1e-3,batch_size=16,output_np=False):
+def prepareThrustClassificationDatasets(
+    yaml_config,
+    data_config,
+    train_ratio=0.7,
+    val_ratio=0.15,
+    test_ratio=0.15,
+    pos_noise_std=1e-3,
+    vel_noise_std=1e-3,
+    batch_size=16,
+    output_np=False,
+    # ---- PCA options ----
+    pca_enabled=False,
+    pca_mode="per_t",              # "per_t" (default) or "hankel"
+    pca_n_components=0.95,         # float in (0,1] for var ratio, or int for fixed dims
+    pca_whiten=False,
+    pca_standardize=True,
+    pca_random_state=0,
+    hankel_L=5,                    # only used if pca_mode == "hankel"
+    hankel_step=1,
+    hankel_pool="none",            # "none" => keep sequence (T -> T-L*step+1); "mean" => (N, d)
+    return_pca=False               # if True and pca_enabled, also return fitted PCA state
+):
     '''
     assumes 4 classes: chemical, electric, impBurn, noThrust
     assumes equal number of ICs for each class
+
+    PCA behavior:
+      - per_t: fits PCA independently at each time index on train only; keeps T; reduces D->d.
+      - hankel: builds lag-embedded windows of length L; fits one PCA on concatenated lag features.
+                If hankel_pool == "none": returns (N, T-L*step+1, d).
+                If hankel_pool == "mean": returns (N, d) (time-averaged), which becomes (N, 1, d) for loader.
     '''
-    useOE = yaml_config['useOE']
-    useNorm = yaml_config['useNorm']
+    import numpy as np
+
+    useOE    = yaml_config['useOE']
+    useNorm  = yaml_config['useNorm']
     useNoise = yaml_config['useNoise']
-    useEnergy = yaml_config['useEnergy']
+    useEnergy= yaml_config['useEnergy']
 
     numMinProp = yaml_config['prop_time']
 
-    train_set = yaml_config['orbit']
-    systems = yaml_config['systems']
+    train_set   = yaml_config['orbit']
+    systems     = yaml_config['systems']
+    test_set    = yaml_config['test_dataset']
+    test_systems= yaml_config['test_systems']
 
-    test_set = yaml_config['test_dataset']
-    test_systems = yaml_config['test_systems']
-
-    dataLoc = data_config['classification'] + train_set +"/" + str(numMinProp) + "min-" + str(systems)
-    dataLoc_test = data_config['classification'] + test_set +"/" + str(numMinProp) + "min-" + str(test_systems)
+    dataLoc      = data_config['classification'] + train_set + "/" + str(numMinProp) + "min-" + str(systems)
+    dataLoc_test = data_config['classification'] + test_set  + "/" + str(numMinProp) + "min-" + str(test_systems)
 
     print(f"Training data location: {dataLoc}")
     print(f"Test data location: {dataLoc_test}")
@@ -61,37 +89,39 @@ def prepareThrustClassificationDatasets(yaml_config,data_config,train_ratio=0.7,
     statesArrayImpBurn = a['statesArrayImpBurn']
     a = np.load(f"{dataLoc}/statesArrayNoThrust.npz")
     statesArrayNoThrust = a['statesArrayNoThrust']
+    del a
     n_ic = statesArrayChemical.shape[0]
 
+    # ----- optional noise -----
     if useNoise:
         statesArrayChemical = apply_noise(statesArrayChemical, pos_noise_std, vel_noise_std)
         statesArrayElectric = apply_noise(statesArrayElectric, pos_noise_std, vel_noise_std)
-        statesArrayImpBurn = apply_noise(statesArrayImpBurn, pos_noise_std, vel_noise_std)
+        statesArrayImpBurn  = apply_noise(statesArrayImpBurn,  pos_noise_std, vel_noise_std)
         statesArrayNoThrust = apply_noise(statesArrayNoThrust, pos_noise_std, vel_noise_std)
-    if useOE:
-        # convert to OE 
-        from qutils.orbital import ECI2OE
-        OEArrayChemical = np.zeros((systems,numMinProp,7))
-        OEArrayElectric = np.zeros((systems,numMinProp,7))
-        OEArrayImpBurn = np.zeros((systems,numMinProp,7))
-        OEArrayNoThrust = np.zeros((systems,numMinProp,7))
 
+    # ----- optional OE conversion -----
+    if useOE:
+        from qutils.orbital import ECI2OE
+        OEArrayChemical = np.zeros((systems,     numMinProp, 7))
+        OEArrayElectric = np.zeros((systems,     numMinProp, 7))
+        OEArrayImpBurn  = np.zeros((systems,     numMinProp, 7))
+        OEArrayNoThrust = np.zeros((systems,     numMinProp, 7))
         for i in range(systems):
             for j in range(numMinProp):
-                OEArrayChemical[i,j,:] = ECI2OE(statesArrayChemical[i,j,0:3],statesArrayChemical[i,j,3:6])
-                OEArrayElectric[i,j,:] = ECI2OE(statesArrayElectric[i,j,0:3],statesArrayElectric[i,j,3:6])
-                OEArrayImpBurn[i,j,:] = ECI2OE(statesArrayImpBurn[i,j,0:3],statesArrayImpBurn[i,j,3:6])
-                OEArrayNoThrust[i,j,:] = ECI2OE(statesArrayNoThrust[i,j,0:3],statesArrayNoThrust[i,j,3:6])
+                OEArrayChemical[i,j,:] = ECI2OE(statesArrayChemical[i,j,0:3], statesArrayChemical[i,j,3:6])
+                OEArrayElectric[i,j,:] = ECI2OE(statesArrayElectric[i,j,0:3], statesArrayElectric[i,j,3:6])
+                OEArrayImpBurn[i,j,:]  = ECI2OE(statesArrayImpBurn[i,j,0:3],   statesArrayImpBurn[i,j,3:6])
+                OEArrayNoThrust[i,j,:] = ECI2OE(statesArrayNoThrust[i,j,0:3],  statesArrayNoThrust[i,j,3:6])
         if useNorm:
             R = 6378.1363
-            OEArrayChemical[:,:,0] = OEArrayChemical[:,:,0] / R
-            OEArrayElectric[:,:,0] = OEArrayElectric[:,:,0] / R
-            OEArrayImpBurn[:,:,0] = OEArrayImpBurn[:,:,0] / R
-            OEArrayNoThrust[:,:,0] = OEArrayNoThrust[:,:,0] / R
+            OEArrayChemical[:,:,0] /= R
+            OEArrayElectric[:,:,0] /= R
+            OEArrayImpBurn[:,:,0]  /= R
+            OEArrayNoThrust[:,:,0] /= R
 
         statesArrayChemical = OEArrayChemical[:,:,0:6]
         statesArrayElectric = OEArrayElectric[:,:,0:6]
-        statesArrayImpBurn = OEArrayImpBurn[:,:,0:6]
+        statesArrayImpBurn  = OEArrayImpBurn[:,:,0:6]
         statesArrayNoThrust = OEArrayNoThrust[:,:,0:6]
 
     if useNorm and not useOE:
@@ -99,193 +129,296 @@ def prepareThrustClassificationDatasets(yaml_config,data_config,train_ratio=0.7,
         for i in range(n_ic):
             statesArrayChemical[i,:,:] = dim2NonDim6(statesArrayChemical[i,:,:])
             statesArrayElectric[i,:,:] = dim2NonDim6(statesArrayElectric[i,:,:])
-            statesArrayImpBurn[i,:,:] = dim2NonDim6(statesArrayImpBurn[i,:,:])
+            statesArrayImpBurn[i,:,:]  = dim2NonDim6(statesArrayImpBurn[i,:,:])
             statesArrayNoThrust[i,:,:] = dim2NonDim6(statesArrayNoThrust[i,:,:])
-    del a
 
+    # ----- labels -----
     noThrustLabel = 0
     chemicalLabel = 1
     electricLabel = 2
-    impBurnLabel = 3
-    n_ic = statesArrayChemical.shape[0]
+    impBurnLabel  = 3
 
-    # Create labels for each dataset
-    labelsChemical = np.full((n_ic,1),chemicalLabel)
-    labelsElectric = np.full((n_ic,1),electricLabel)
-    labelsImpBurn = np.full((n_ic,1),impBurnLabel)
-    labelsNoThrust = np.full((n_ic,1),noThrustLabel)
-    # Combine datasets and labels
+    labelsChemical = np.full((statesArrayChemical.shape[0],1), chemicalLabel)
+    labelsElectric = np.full((statesArrayElectric.shape[0],1), electricLabel)
+    labelsImpBurn  = np.full((statesArrayImpBurn.shape[0],1),  impBurnLabel)
+    labelsNoThrust = np.full((statesArrayNoThrust.shape[0],1), noThrustLabel)
+
+    # ----- base dataset (N, T, D) -----
     dataset = np.concatenate((statesArrayChemical, statesArrayElectric, statesArrayImpBurn, statesArrayNoThrust), axis=0)
 
+    # ----- optional energy channel -----
     if useEnergy:
         from qutils.orbital import orbitalEnergy
-        energyChemical = np.zeros((n_ic,statesArrayChemical.shape[1],1))
-        energyElectric= np.zeros((n_ic,statesArrayChemical.shape[1],1))
-        energyImpBurn= np.zeros((n_ic,statesArrayChemical.shape[1],1))
-        energyNoThrust= np.zeros((n_ic,statesArrayChemical.shape[1],1))
+        n_ic = statesArrayChemical.shape[0]
+        T = statesArrayChemical.shape[1]
+        energyChemical = np.zeros((n_ic, T, 1))
+        energyElectric = np.zeros((n_ic, T, 1))
+        energyImpBurn  = np.zeros((n_ic, T, 1))
+        energyNoThrust = np.zeros((n_ic, T, 1))
         for i in range(n_ic):
             energyChemical[i,:,0] = orbitalEnergy(statesArrayChemical[i,:,:])
             energyElectric[i,:,0] = orbitalEnergy(statesArrayElectric[i,:,:])
-            energyImpBurn[i,:,0] = orbitalEnergy(statesArrayImpBurn[i,:,:])
+            energyImpBurn[i,:,0]  = orbitalEnergy(statesArrayImpBurn[i,:,:])
             energyNoThrust[i,:,0] = orbitalEnergy(statesArrayNoThrust[i,:,:])
         if useNorm:
             normingEnergy = energyNoThrust[0,0,0]
-            energyChemical[:,:,0] = energyChemical[:,:,0] / normingEnergy
-            energyElectric[:,:,0] = energyElectric[:,:,0] / normingEnergy
-            energyImpBurn[:,:,0] = energyImpBurn[:,:,0] / normingEnergy
-            energyNoThrust[:,:,0] = energyNoThrust[:,:,0] / normingEnergy
+            energyChemical[:,:,0] /= normingEnergy
+            energyElectric[:,:,0] /= normingEnergy
+            energyImpBurn[:,:,0]  /= normingEnergy
+            energyNoThrust[:,:,0] /= normingEnergy
 
-        dataset = np.concatenate((energyChemical, energyElectric, energyImpBurn, energyNoThrust), axis=0)
-    if useEnergy and useOE:
-        combinedChemical = np.concatenate((OEArrayChemical,energyChemical),axis=2) 
-        combinedElectric = np.concatenate((OEArrayElectric,energyElectric),axis=2) 
-        combinedImpBurn = np.concatenate((OEArrayImpBurn,energyImpBurn),axis=2) 
-        combinedNoThrust = np.concatenate((OEArrayNoThrust,energyNoThrust),axis=2) 
-        dataset = np.concatenate((combinedChemical, combinedElectric, combinedImpBurn, combinedNoThrust), axis=0)
+        if useOE:
+            combinedChemical = np.concatenate((OEArrayChemical, energyChemical), axis=2)
+            combinedElectric = np.concatenate((OEArrayElectric, energyElectric), axis=2)
+            combinedImpBurn  = np.concatenate((OEArrayImpBurn,  energyImpBurn ), axis=2)
+            combinedNoThrust = np.concatenate((OEArrayNoThrust, energyNoThrust), axis=2)
+            dataset = np.concatenate((combinedChemical, combinedElectric, combinedImpBurn, combinedNoThrust), axis=0)
+        else:
+            dataset = np.concatenate((energyChemical, energyElectric, energyImpBurn, energyNoThrust), axis=0)
 
     dataset_label = np.concatenate((labelsChemical, labelsElectric, labelsImpBurn, labelsNoThrust), axis=0)
 
-    # shuffle the dataset completely
-    groups = np.tile(np.arange(n_ic, dtype=np.int64), 4)   # len == 40000
+    # ----- split by IC groups (keeps all 4 thrust variants together) -----
+    n_ic = statesArrayChemical.shape[0]  # ICs per class for the TRAIN SET
+    groups = np.tile(np.arange(n_ic, dtype=np.int64), 4)   # length = 4*n_ic
 
-    # Ratios (must satisfy train+val <= 1.0; test gets the remainder)
-    # example:
-    # train_ratio, val_ratio = 0.7, 0.15
     n_train_ic = int(np.floor(train_ratio * n_ic))
     n_val_ic   = int(np.floor(val_ratio   * n_ic))
     n_test_ic  = n_ic - n_train_ic - n_val_ic
     assert n_test_ic > 0, "Ratios leave no ICs for test; reduce train/val."
 
-    # Shuffle ICs and partition
     perm_ic = np.random.permutation(n_ic)
     train_ic = perm_ic[:n_train_ic]
     val_ic   = perm_ic[n_train_ic:n_train_ic + n_val_ic]
     test_ic  = perm_ic[n_train_ic + n_val_ic:]
 
-    # Masks select ALL thrust variants for each IC
     train_mask = np.isin(groups, train_ic)
     val_mask   = np.isin(groups, val_ic)
     test_mask  = np.isin(groups, test_ic)
 
-    # Apply masks
-    train_data,  train_label  = dataset[train_mask], dataset_label[train_mask]
-    val_data,    val_label    = dataset[val_mask],   dataset_label[val_mask]
+    train_data, train_label = dataset[train_mask], dataset_label[train_mask]
+    val_data,   val_label   = dataset[val_mask],   dataset_label[val_mask]
 
+    # ----- test set (OOD path or same dataset) -----
     if test_set != train_set or test_systems != systems:
-
-        a = np.load(f"{dataLoc_test}/statesArrayChemical.npz")
-        statesArrayChemical = a['statesArrayChemical']
-        a = np.load(f"{dataLoc_test}/statesArrayElectric.npz")
-        statesArrayElectric = a['statesArrayElectric']
-        a = np.load(f"{dataLoc_test}/statesArrayImpBurn.npz")
-        statesArrayImpBurn = a['statesArrayImpBurn']
-        a = np.load(f"{dataLoc_test}/statesArrayNoThrust.npz")
-        statesArrayNoThrust = a['statesArrayNoThrust']
-        n_ic = statesArrayChemical.shape[0]
+        a = np.load(f"{dataLoc_test}/statesArrayChemical.npz"); statesArrayChemical = a['statesArrayChemical']
+        a = np.load(f"{dataLoc_test}/statesArrayElectric.npz"); statesArrayElectric = a['statesArrayElectric']
+        a = np.load(f"{dataLoc_test}/statesArrayImpBurn.npz");  statesArrayImpBurn  = a['statesArrayImpBurn']
+        a = np.load(f"{dataLoc_test}/statesArrayNoThrust.npz");statesArrayNoThrust = a['statesArrayNoThrust']
+        del a
+        n_ic_test = statesArrayChemical.shape[0]
 
         if useNoise:
             statesArrayChemical = apply_noise(statesArrayChemical, pos_noise_std, vel_noise_std)
             statesArrayElectric = apply_noise(statesArrayElectric, pos_noise_std, vel_noise_std)
-            statesArrayImpBurn = apply_noise(statesArrayImpBurn, pos_noise_std, vel_noise_std)
+            statesArrayImpBurn  = apply_noise(statesArrayImpBurn,  pos_noise_std, vel_noise_std)
             statesArrayNoThrust = apply_noise(statesArrayNoThrust, pos_noise_std, vel_noise_std)
         if useOE:
-            # convert to OE 
             from qutils.orbital import ECI2OE
-            OEArrayChemical = np.zeros((test_systems,numMinProp,7))
-            OEArrayElectric = np.zeros((test_systems,numMinProp,7))
-            OEArrayImpBurn = np.zeros((test_systems,numMinProp,7))
-            OEArrayNoThrust = np.zeros((test_systems,numMinProp,7))
-
+            OEArrayChemical = np.zeros((test_systems, numMinProp, 7))
+            OEArrayElectric = np.zeros((test_systems, numMinProp, 7))
+            OEArrayImpBurn  = np.zeros((test_systems, numMinProp, 7))
+            OEArrayNoThrust = np.zeros((test_systems, numMinProp, 7))
             for i in range(test_systems):
                 for j in range(numMinProp):
-                    OEArrayChemical[i,j,:] = ECI2OE(statesArrayChemical[i,j,0:3],statesArrayChemical[i,j,3:6])
-                    OEArrayElectric[i,j,:] = ECI2OE(statesArrayElectric[i,j,0:3],statesArrayElectric[i,j,3:6])
-                    OEArrayImpBurn[i,j,:] = ECI2OE(statesArrayImpBurn[i,j,0:3],statesArrayImpBurn[i,j,3:6])
-                    OEArrayNoThrust[i,j,:] = ECI2OE(statesArrayNoThrust[i,j,0:3],statesArrayNoThrust[i,j,3:6])
+                    OEArrayChemical[i,j,:] = ECI2OE(statesArrayChemical[i,j,0:3], statesArrayChemical[i,j,3:6])
+                    OEArrayElectric[i,j,:] = ECI2OE(statesArrayElectric[i,j,0:3], statesArrayElectric[i,j,3:6])
+                    OEArrayImpBurn[i,j,:]  = ECI2OE(statesArrayImpBurn[i,j,0:3],   statesArrayImpBurn[i,j,3:6])
+                    OEArrayNoThrust[i,j,:] = ECI2OE(statesArrayNoThrust[i,j,0:3],  statesArrayNoThrust[i,j,3:6])
             if useNorm:
                 R = 6378.1363
-                OEArrayChemical[:,:,0] = OEArrayChemical[:,:,0] / R
-                OEArrayElectric[:,:,0] = OEArrayElectric[:,:,0] / R
-                OEArrayImpBurn[:,:,0] = OEArrayImpBurn[:,:,0] / R
-                OEArrayNoThrust[:,:,0] = OEArrayNoThrust[:,:,0] / R
-
+                OEArrayChemical[:,:,0] /= R
+                OEArrayElectric[:,:,0] /= R
+                OEArrayImpBurn[:,:,0]  /= R
+                OEArrayNoThrust[:,:,0] /= R
             statesArrayChemical = OEArrayChemical[:,:,0:6]
             statesArrayElectric = OEArrayElectric[:,:,0:6]
-            statesArrayImpBurn = OEArrayImpBurn[:,:,0:6]
+            statesArrayImpBurn  = OEArrayImpBurn[:,:,0:6]
             statesArrayNoThrust = OEArrayNoThrust[:,:,0:6]
 
         if useNorm and not useOE:
             from qutils.orbital import dim2NonDim6
-            for i in range(n_ic):
+            for i in range(n_ic_test):
                 statesArrayChemical[i,:,:] = dim2NonDim6(statesArrayChemical[i,:,:])
                 statesArrayElectric[i,:,:] = dim2NonDim6(statesArrayElectric[i,:,:])
-                statesArrayImpBurn[i,:,:] = dim2NonDim6(statesArrayImpBurn[i,:,:])
+                statesArrayImpBurn[i,:,:]  = dim2NonDim6(statesArrayImpBurn[i,:,:])
                 statesArrayNoThrust[i,:,:] = dim2NonDim6(statesArrayNoThrust[i,:,:])
-        del a
 
         dataset_test = np.concatenate((statesArrayChemical, statesArrayElectric, statesArrayImpBurn, statesArrayNoThrust), axis=0)
+
         if useEnergy:
             from qutils.orbital import orbitalEnergy
-            energyChemical = np.zeros((n_ic,statesArrayChemical.shape[1],1))
-            energyElectric= np.zeros((n_ic,statesArrayChemical.shape[1],1))
-            energyImpBurn= np.zeros((n_ic,statesArrayChemical.shape[1],1))
-            energyNoThrust= np.zeros((n_ic,statesArrayChemical.shape[1],1))
-            for i in range(n_ic):
+            Tt = statesArrayChemical.shape[1]
+            energyChemical = np.zeros((n_ic_test, Tt, 1))
+            energyElectric = np.zeros((n_ic_test, Tt, 1))
+            energyImpBurn  = np.zeros((n_ic_test, Tt, 1))
+            energyNoThrust = np.zeros((n_ic_test, Tt, 1))
+            for i in range(n_ic_test):
                 energyChemical[i,:,0] = orbitalEnergy(statesArrayChemical[i,:,:])
                 energyElectric[i,:,0] = orbitalEnergy(statesArrayElectric[i,:,:])
-                energyImpBurn[i,:,0] = orbitalEnergy(statesArrayImpBurn[i,:,:])
+                energyImpBurn[i,:,0]  = orbitalEnergy(statesArrayImpBurn[i,:,:])
                 energyNoThrust[i,:,0] = orbitalEnergy(statesArrayNoThrust[i,:,:])
             if useNorm:
                 normingEnergy = energyNoThrust[0,0,0]
-                energyChemical[:,:,0] = energyChemical[:,:,0] / normingEnergy
-                energyElectric[:,:,0] = energyElectric[:,:,0] / normingEnergy
-                energyImpBurn[:,:,0] = energyImpBurn[:,:,0] / normingEnergy
-                energyNoThrust[:,:,0] = energyNoThrust[:,:,0] / normingEnergy
+                energyChemical[:,:,0] /= normingEnergy
+                energyElectric[:,:,0] /= normingEnergy
+                energyImpBurn[:,:,0]  /= normingEnergy
+                energyNoThrust[:,:,0] /= normingEnergy
 
-            dataset_test = np.concatenate((energyChemical, energyElectric, energyImpBurn, energyNoThrust), axis=0)
+            if useOE:
+                combinedChemical = np.concatenate((OEArrayChemical, energyChemical), axis=2)
+                combinedElectric = np.concatenate((OEArrayElectric, energyElectric), axis=2)
+                combinedImpBurn  = np.concatenate((OEArrayImpBurn,  energyImpBurn ), axis=2)
+                combinedNoThrust = np.concatenate((OEArrayNoThrust, energyNoThrust), axis=2)
+                dataset_test = np.concatenate((combinedChemical, combinedElectric, combinedImpBurn, combinedNoThrust), axis=0)
+            else:
+                dataset_test = np.concatenate((energyChemical, energyElectric, energyImpBurn, energyNoThrust), axis=0)
 
-        if useEnergy and useOE:
-            combinedChemical = np.concatenate((OEArrayChemical,energyChemical),axis=2) 
-            combinedElectric = np.concatenate((OEArrayElectric,energyElectric),axis=2) 
-            combinedImpBurn = np.concatenate((OEArrayImpBurn,energyImpBurn),axis=2) 
-            combinedNoThrust = np.concatenate((OEArrayNoThrust,energyNoThrust),axis=2) 
-            dataset_test = np.concatenate((combinedChemical, combinedElectric, combinedImpBurn, combinedNoThrust), axis=0)
-
-        labelsChemical = np.full((n_ic,1),chemicalLabel)
-        labelsElectric = np.full((statesArrayElectric.shape[0],1),electricLabel)
-        labelsImpBurn = np.full((statesArrayImpBurn.shape[0],1),impBurnLabel)
-        labelsNoThrust = np.full((statesArrayNoThrust.shape[0],1),noThrustLabel)
-
+        labelsChemical = np.full((statesArrayChemical.shape[0],1), chemicalLabel)
+        labelsElectric = np.full((statesArrayElectric.shape[0],1), electricLabel)
+        labelsImpBurn  = np.full((statesArrayImpBurn.shape[0],1),  impBurnLabel)
+        labelsNoThrust = np.full((statesArrayNoThrust.shape[0],1), noThrustLabel)
         dataset_label_test = np.concatenate((labelsChemical, labelsElectric, labelsImpBurn, labelsNoThrust), axis=0)
-        
-        groups = np.tile(np.arange(n_ic, dtype=np.int64), 4)
 
-        # Ratios (must satisfy train+val <= 1.0; test gets the remainder)
-        # example:
-        # train_ratio, val_ratio = 0.7, 0.15
-        n_train_ic = int(np.floor(train_ratio * n_ic))
-        n_val_ic   = int(np.floor(val_ratio   * n_ic))
-        n_test_ic  = n_ic - n_train_ic - n_val_ic
-        perm_ic = np.random.permutation(n_ic)
-        train_ic = perm_ic[:n_train_ic]
-        val_ic   = perm_ic[n_train_ic:n_train_ic + n_val_ic]
-        test_ic  = perm_ic[n_train_ic + n_val_ic:]
+        groups_test = np.tile(np.arange(n_ic_test, dtype=np.int64), 4)
+        n_train_ic_t = int(np.floor(train_ratio * n_ic_test))
+        n_val_ic_t   = int(np.floor(val_ratio   * n_ic_test))
+        perm_ic_t = np.random.permutation(n_ic_test)
+        train_ic_t = perm_ic_t[:n_train_ic_t]
+        val_ic_t   = perm_ic_t[n_train_ic_t:n_train_ic_t + n_val_ic_t]
+        test_ic_t  = perm_ic_t[n_train_ic_t + n_val_ic_t:]
 
-        # Masks select ALL thrust variants for each IC
-        train_mask = np.isin(groups, train_ic)
-        val_mask   = np.isin(groups, val_ic)
-        test_mask  = np.isin(groups, test_ic)
-
-        test_data,   test_label   = dataset_test[test_mask],  dataset_label_test[test_mask]
+        train_mask_t = np.isin(groups_test, train_ic_t)
+        val_mask_t   = np.isin(groups_test, val_ic_t)
+        test_mask_t  = np.isin(groups_test, test_ic_t)
+        test_data, test_label = dataset_test[test_mask_t], dataset_label_test[test_mask_t]
     else:
-        test_data,   test_label   = dataset[test_mask],  dataset_label[test_mask]
+        test_data, test_label = dataset[test_mask], dataset_label[test_mask]
 
-    train_loader, val_loader, test_loader = _prepareClassificationDataLoaders((train_data,train_label),(val_data,val_label),(test_data,test_label),batch_size)
+    # =========================
+    # PCA (fit on train only)
+    # =========================
+    pca_state = None
+    if pca_enabled:
+        from sklearn.decomposition import PCA
+        from sklearn.preprocessing import StandardScaler
 
+        def _per_t_fit_transform(X_train, X_splits):
+            # X_*: (N, T, D)
+            N, T, D = X_train.shape
+            scalers = [None] * T
+            pcas    = [None] * T
+            out_splits = []
+            for X in X_splits:
+                assert X.ndim == 3 and X.shape[1] == T, "All splits must have same T for per_t PCA."
+            # fit
+            Xtr = X_train
+            Xouts = []
+            # determine n_components per time (can be float ratio or int)
+            for t in range(T):
+                Xt = Xtr[:, t, :]  # (N, D)
+                if pca_standardize:
+                    scaler = StandardScaler().fit(Xt)
+                    Xtn = scaler.transform(Xt)
+                else:
+                    scaler = None
+                    Xtn = Xt
+                pca = PCA(n_components=pca_n_components, whiten=pca_whiten, random_state=pca_random_state).fit(Xtn)
+                scalers[t] = scaler
+                pcas[t] = pca
+            # transform all splits
+            for X in X_splits:
+                Nt = X.shape[0]
+                dout_list = []
+                for t in range(T):
+                    Xt = X[:, t, :]
+                    if scalers[t] is not None:
+                        Xtn = scalers[t].transform(Xt)
+                    else:
+                        Xtn = Xt
+                    Zt = pcas[t].transform(Xtn)  # (Nt, d_t)
+                    dout_list.append(Zt[:, None, :])  # keep time axis
+                Z = np.concatenate(dout_list, axis=1)  # (N, T, d_t) with possibly varying d_t across t if ratio used
+                # If ratio used and d varies across t, force a common dim = min d_t:
+                d_common = min(z.shape[-1] for z in dout_list)
+                if any(z.shape[-1] != d_common for z in dout_list):
+                    Z = np.concatenate([z[:, :, :d_common] for z in dout_list], axis=1)
+                Xouts.append(Z.astype(np.float32))
+            state = {"mode":"per_t","scalers":scalers,"pcas":pcas,"d_out":Xouts[0].shape[-1]}
+            return Xouts, state
+
+        def _hankel_embed(X, L, step=1):
+            # X: (N, T, D) -> (N, T-L*step+1, L*D)
+            N, T, D = X.shape
+            M = T - L*step + 1
+            if M <= 0:
+                raise ValueError(f"hankel_L={L} and step={step} invalid for T={T}")
+            out = np.empty((N, M, L*D), dtype=X.dtype)
+            for i in range(M):
+                seg = [X[:, i + k*step, :] for k in range(L)]
+                out[:, i, :] = np.concatenate(seg, axis=1)
+            return out
+
+        def _hankel_fit_transform(X_train, X_splits):
+            # lag embed
+            Xe_train = _hankel_embed(X_train, hankel_L, hankel_step)  # (N, M, L*D)
+            Ntr, M, LD = Xe_train.shape
+            # fit scaler + PCA on pooled time from train
+            from sklearn.preprocessing import StandardScaler
+            from sklearn.decomposition import PCA
+            Xpool = Xe_train.reshape(-1, LD)  # (Ntr*M, LD)
+            if pca_standardize:
+                scaler = StandardScaler().fit(Xpool)
+                Xpooln = scaler.transform(Xpool)
+            else:
+                scaler = None
+                Xpooln = Xpool
+            pca = PCA(n_components=pca_n_components, whiten=pca_whiten, random_state=pca_random_state).fit(Xpooln)
+            # transform splits
+            outs = []
+            for X in X_splits:
+                Xe = _hankel_embed(X, hankel_L, hankel_step)  # (N, M, LD)
+                Xflat = Xe.reshape(-1, LD)
+                if scaler is not None:
+                    Xflat = scaler.transform(Xflat)
+                Zflat = pca.transform(Xflat)  # (N*M, d)
+                Z = Zflat.reshape(Xe.shape[0], Xe.shape[1], -1)  # (N, M, d)
+                if hankel_pool == "mean":
+                    Z = Z.mean(axis=1, keepdims=True)  # (N, 1, d)
+                outs.append(Z.astype(np.float32))
+            state = {"mode":"hankel","scaler":scaler,"pca":pca,"L":hankel_L,"step":hankel_step,"pool":hankel_pool,"d_out":outs[0].shape[-1]}
+            return outs, state
+
+        if pca_mode not in ("per_t", "hankel"):
+            raise ValueError("pca_mode must be 'per_t' or 'hankel'")
+
+        if pca_mode == "per_t":
+            (train_data_pca, val_data_pca, test_data_pca), pca_state = _per_t_fit_transform(
+                train_data, [train_data, val_data, test_data]
+            )
+        else:
+            (train_data_pca, val_data_pca, test_data_pca), pca_state = _hankel_fit_transform(
+                train_data, [train_data, val_data, test_data]
+            )
+
+        train_data, val_data, test_data = train_data_pca, val_data_pca, test_data_pca
+
+    # ----- loaders -----
+    train_loader, val_loader, test_loader = _prepareClassificationDataLoaders(
+        (train_data, train_label),
+        (val_data,   val_label),
+        (test_data,  test_label),
+        batch_size
+    )
+    if pca_enabled:
+        print(f"Using {pca_state['d_out']} features after PCA ({pca_mode} mode).")
+    if output_np and return_pca and pca_enabled:
+        return train_loader, val_loader, test_loader, train_data, train_label, val_data, val_label, test_data, test_label, pca_state
     if output_np:
-        return train_loader, val_loader, test_loader, train_data,train_label,val_data,val_label,test_data,test_label
-    else:
-        return train_loader, val_loader, test_loader
+        return train_loader, val_loader, test_loader, train_data, train_label, val_data, val_label, test_data, test_label
+    if return_pca and pca_enabled:
+        return train_loader, val_loader, test_loader, pca_state
+    return train_loader, val_loader, test_loader
 
 def _prepareClassificationDataLoaders(train_dataset,val_dataset,test_dataset,batch_size):
     train_data, train_label = train_dataset[0], train_dataset[1]
@@ -295,9 +428,9 @@ def _prepareClassificationDataLoaders(train_dataset,val_dataset,test_dataset,bat
     from torch.utils.data import TensorDataset
     from torch.utils.data import DataLoader
 
-    train_dataset = TensorDataset(torch.from_numpy(train_data), torch.from_numpy(train_label).squeeze(1).long())
-    val_dataset = TensorDataset(torch.from_numpy(val_data), torch.from_numpy(val_label).squeeze(1).long())
-    test_dataset = TensorDataset(torch.from_numpy(test_data), torch.from_numpy(test_label).squeeze(1).long())
+    train_dataset = TensorDataset(torch.from_numpy(train_data).double(), torch.from_numpy(train_label).squeeze(1).long())
+    val_dataset = TensorDataset(torch.from_numpy(val_data).double(), torch.from_numpy(val_label).squeeze(1).long())
+    test_dataset = TensorDataset(torch.from_numpy(test_data).double(), torch.from_numpy(test_label).squeeze(1).long())
     
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True,pin_memory=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False,pin_memory=True)
