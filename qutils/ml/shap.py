@@ -33,7 +33,7 @@ def run_shap_analysis(
     internal_batch_size: int = 32,      # only used by IG
     use_cpu: bool = False,
     group_by: str = "true",
-    seed: int = 0,
+    seed = 0,
 ):
     os.makedirs(out_dir, exist_ok=True)
     if torch.cuda.is_available():
