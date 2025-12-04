@@ -2,7 +2,7 @@
 from captum.attr import GradientShap, IntegratedGradients
 import os, gc, numpy as np, pandas as pd,torch, matplotlib.pyplot as plt
 import glob
-
+from typing import List
 @torch.no_grad()
 def _stack_first_n_from_loader(loader, n, device):
     xs, ys, seen = [], [], 0
@@ -23,7 +23,7 @@ def run_shap_analysis(
     train_loader, eval_loader,
     device: str,
     classlabels: list,
-    feature_names: list[str] | None = None,
+    feature_names: List[str] | None = None,
     out_dir: str = "artifacts/shap",
     method: str = "gradshap",          # "gradshap" or "ig"
     baseline_nsamples: int = 32,
