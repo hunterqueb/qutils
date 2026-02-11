@@ -86,6 +86,91 @@ def nondim_cr3bp(t, Y,mu):
     Ydot[5] = -(1 - mu)/sigma**3 * z - mu/psi**3 * z
     return Ydot
 
+def twoBodyJ2Drag(t, y, mu, Re, m_sat, rho_0, h_scale, c_d, A_sat):
+    # two body problem with J2 perturbation in 6 dimensions taken from astroforge library
+    # includes atmospheric drag as well, with an exponential atmospheric density model.
+    # parameters:
+    # t: time
+    # y: state vector (position and velocity)
+    # mu: gravitational parameter of the central body
+    # Re: radius of the central body
+    # m_sat: mass of the satellite
+    # rho_0: atmospheric density at the surface of the central body
+    # h_scale: scale height of the atmosphere
+    # c_d: drag coefficient of the satellite
+    # A_sat: cross-sectional area of the satellite
+    # https://github.com/mit-ll/AstroForge/blob/main/src/astroforge/force_models/_models.py
+    # https://github.com/mit-ll/AstroForge/blob/main/src/astroforge/force_models/_forces.py
+
+    # x, v = np.split(y, 2) # orginal line in Astroforge
+    # faster than above
+    x = y[:3]
+    v = y[3:]
+
+    J2 = 4.84165368e-4 * np.sqrt(5)
+
+    M2 = J2 * np.diag(np.array([0.5, 0.5, -1.0]))
+    r = np.sqrt(x @ x) # faster than np.linalg.norm(x) (original line in Astroforge)
+    v_norm = np.sqrt(v @ v) # faster than np.linalg.norm(v)
+
+    # compute monopole force
+    F0 = -mu * x / r**3
+
+    # compute the quadropole force in ITRS
+    acc = (mu * Re**2 / r**5) * (-5 * x * (x @ M2 @ x) / r**2 + 2 * M2 @ x) + F0
+
+    # ydot = np.hstack((v, acc)) # orginal line in Astroforge
+    # faster than above
+    ydot = np.empty(6)
+    ydot[:3] = v
+    ydot[3:] = acc
+
+    rho = rho_0 * np.exp(-(r-Re) / h_scale)  # Atmospheric density model
+    drag_factor = -0.5 * (rho / m_sat) * c_d * A_sat * v_norm
+
+    a_drag = v * drag_factor
+    ydot[3:] += a_drag
+
+    # print(f"rho: {rho}, satellite mass: {m_sat}, a_drag: {a_drag}, force: {np.linalg.norm(ydot[3:]*m_sat)}")
+
+    return ydot
+
+def twoBodyJ2(t, y, mu, Re):
+    # two body problem with J2 perturbation in 6 dimensions taken from astroforge library
+    # includes atmospheric drag as well, with an exponential atmospheric density model.
+    # parameters:
+    # t: time
+    # y: state vector (position and velocity)
+    # mu: gravitational parameter of the central body
+    # Re: radius of the central body
+    # https://github.com/mit-ll/AstroForge/blob/main/src/astroforge/force_models/_models.py
+    # https://github.com/mit-ll/AstroForge/blob/main/src/astroforge/force_models/_forces.py
+
+    # x, v = np.split(y, 2) # orginal line in Astroforge
+    # faster than above
+    x = y[:3]
+    v = y[3:]
+
+    J2 = 4.84165368e-4 * np.sqrt(5)
+
+    M2 = J2 * np.diag(np.array([0.5, 0.5, -1.0]))
+    r = np.sqrt(x @ x) # faster than np.linalg.norm(x) (original line in Astroforge)
+    v_norm = np.sqrt(v @ v) # faster than np.linalg.norm(v)
+
+    # compute monopole force
+    F0 = -mu * x / r**3
+
+    # compute the quadropole force in ITRS
+    acc = (mu * Re**2 / r**5) * (-5 * x * (x @ M2 @ x) / r**2 + 2 * M2 @ x) + F0
+
+    # ydot = np.hstack((v, acc)) # orginal line in Astroforge
+    # faster than above
+    ydot = np.empty(6)
+    ydot[:3] = v
+    ydot[3:] = acc
+
+    return ydot
+
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
     from scipy.integrate import solve_ivp
