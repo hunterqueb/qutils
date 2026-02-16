@@ -34,7 +34,7 @@ def lagrangePlanEq(t, elements, mu=398600):
     return delements
 
 
-def three_body_prob(t, r,m=np.array(5.967e23,7.35e22,3.675e22)):
+def three_body_prob(t, r,m):
 
     G = 6.6743015e-11
     m1 = m[0]
