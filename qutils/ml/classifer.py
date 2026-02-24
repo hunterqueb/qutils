@@ -49,7 +49,8 @@ def prepareThrustClassificationDatasets(
     hankel_L=5,                    # only used if pca_mode == "hankel"
     hankel_step=1,
     hankel_pool="none",            # "none" => keep sequence (T -> T-L*step+1); "mean" => (N, d)
-    return_pca=False               # if True and pca_enabled, also return fitted PCA state
+    return_pca=False,              # if True and pca_enabled, also return fitted PCA state
+    supress_print=False,                              
 ):
     '''
     assumes 4 classes: chemical, electric, impBurn, noThrust
@@ -78,8 +79,9 @@ def prepareThrustClassificationDatasets(
     dataLoc      = data_config['classification'] + train_set + "/" + str(numMinProp) + "min-" + str(systems)
     dataLoc_test = data_config['classification'] + test_set  + "/" + str(numMinProp) + "min-" + str(test_systems)
 
-    print(f"Training data location: {dataLoc}")
-    print(f"Test data location: {dataLoc_test}")
+    if not supress_print:
+        print(f"Training data location: {dataLoc}")
+        print(f"Test data location: {dataLoc_test}")
 
     a = np.load(f"{dataLoc}/statesArrayChemical.npz")
     statesArrayChemical = a['statesArrayChemical']
@@ -411,7 +413,8 @@ def prepareThrustClassificationDatasets(
         batch_size
     )
     if pca_enabled:
-        print(f"Using {pca_state['d_out']} features after PCA ({pca_mode} mode).")
+        if not supress_print:
+            print(f"Using {pca_state['d_out']} features after PCA ({pca_mode} mode).")
     if output_np and return_pca and pca_enabled:
         return train_loader, val_loader, test_loader, train_data, train_label, val_data, val_label, test_data, test_label, pca_state
     if output_np:
