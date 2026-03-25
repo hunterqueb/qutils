@@ -9,3 +9,4 @@ scikit-build
 snakeviz
 memory_profiler
 control
+pyyaml
