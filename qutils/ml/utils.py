@@ -123,6 +123,8 @@ def printModelParmSize(model):
     print(f"Total memory (MB): {total_memory / (1024 ** 2)}")
     print("==========================================================================================")
 
+    return total_params
+
 def printModelParameters(model):
     print("\n==========================================================================================")
     for name, param in model.named_parameters():
