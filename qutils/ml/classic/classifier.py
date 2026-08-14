@@ -1,4 +1,4 @@
-import tempfile, pathlib
+import tempfile, pathlib, pickle
 import numpy as np
 from sklearn.metrics import log_loss, classification_report, confusion_matrix
 import pandas as pd
@@ -59,6 +59,81 @@ def validate_lightgbm(model, val_loader, num_classes, classlabels=None, print_re
     # --------------------------------------------------------------------- #
     # Reporting                                                             #
     # --------------------------------------------------------------------- #
+    print(f"Validation Loss: {val_loss:.4f}, Validation Accuracy: {accuracy:.2f}%\n")
+
+    print("Per-Class Validation Accuracy:")
+    for i in range(num_classes):
+        label = classlabels[i] if classlabels else f"Class {i}"
+        if class_tot[i]:
+            print(f"  {label}: {per_class_acc[i]:.2f}% ({class_corr[i]}/{class_tot[i]})")
+        else:
+            print(f"  {label}: No samples")
+
+    if print_report:
+        print("\nClassification Report:")
+        print(
+            classification_report(
+                y_true, y_pred,
+                labels=list(range(num_classes)),
+                target_names=(classlabels if classlabels else None),
+                digits=4,
+                zero_division=0,
+            )
+        )
+
+        cm = confusion_matrix(y_true, y_pred, labels=list(range(num_classes)))
+        print("\nConfusion Matrix (rows = true, cols = predicted):")
+        print(
+            pd.DataFrame(
+                cm,
+                index=[f"T_{cls}" for cls in (classlabels if classlabels else range(num_classes))],
+                columns=[f"P_{cls}" for cls in (classlabels if classlabels else range(num_classes))]
+            )
+        )
+
+    return val_loss, accuracy
+
+
+def printClassicModelSize(model):
+    """Generic byte-size reporter for pickleable scikit-learn-style classifiers
+    (XGBoost, CatBoost, RandomForest, ExtraTrees, ...)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        path = pathlib.Path(tmp) / "model.pkl"
+        with open(path, "wb") as f:
+            pickle.dump(model, f)
+        size_bytes = path.stat().st_size
+    print("\n==========================================================================================")
+    print(f"Total parameters: NaN")
+    print(f"Total memory (bytes): {size_bytes}")
+    print(f"Total memory (MB): {size_bytes / (1024 ** 2)}")
+    print("==========================================================================================")
+
+
+def validate_classic_classifier(model, val_loader, num_classes, classlabels=None, print_report=True):
+    """Evaluate a fitted scikit-learn-style multiclass classifier (with predict_proba) on a
+    PyTorch-style DataLoader. Same flattened-feature convention as validate_lightgbm, without
+    LightGBM's best_iteration_ argument so it also covers XGBoost/CatBoost/RandomForest/ExtraTrees.
+    """
+    X_list, y_list = [], []
+    for seq, lab in val_loader:
+        xb = (seq if isinstance(seq, np.ndarray) else seq.cpu().numpy()).reshape(seq.shape[0], -1)
+        yb = (lab if isinstance(lab, np.ndarray) else lab.cpu().numpy())
+        X_list.append(xb)
+        y_list.append(yb)
+
+    X_val = np.concatenate(X_list, axis=0)
+    y_true = np.concatenate(y_list, axis=0)
+
+    proba = model.predict_proba(X_val)
+    y_pred = proba.argmax(axis=1)
+
+    val_loss = log_loss(y_true, proba, labels=np.arange(num_classes))
+    accuracy = 100.0 * (y_pred == y_true).mean()
+
+    class_tot = np.bincount(y_true, minlength=num_classes)
+    class_corr = np.bincount(y_true[y_true == y_pred], minlength=num_classes)
+    per_class_acc = 100.0 * class_corr / np.maximum(class_tot, 1)
+
     print(f"Validation Loss: {val_loss:.4f}, Validation Accuracy: {accuracy:.2f}%\n")
 
     print("Per-Class Validation Accuracy:")
