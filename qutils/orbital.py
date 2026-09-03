@@ -375,6 +375,82 @@ def orbitalEnergy(Y,mu=396800):
     return E
 
 
+# ---------------------------------------------------------------------------
+# Zonal-harmonic (J2-J6) perturbing-acceleration magnitudes, JGM2-consistent. Coefficients
+# converted from JGM2.cof's fully-normalized RECOEF n 0 values via J_n = -Cbar_n0 * sqrt(2n+1)
+# (the order-0/zonal case of the normalization factor).
+# ---------------------------------------------------------------------------
+MU_EARTH_JGM2 = 398600.4415   # km^3/s^2 -- JGM2.cof POTFIELD line
+RE_EARTH_JGM2 = 6378.1363     # km       -- JGM2.cof POTFIELD line
+J2_JGM2 = 1.0826269e-3
+J3_JGM2 = -2.532153e-6
+J4_JGM2 = -1.620430e-6
+J5_JGM2 = -2.271065e-7
+J6_JGM2 = 5.408505e-7
+
+
+def twoBodyAccel(r, mu=MU_EARTH_JGM2):
+    """r: [...,3] ECI position (km) -> [...,] two-body gravitational acceleration magnitude
+    mu/|r|^2 (km/s^2)."""
+    r_mag = np.linalg.norm(r, axis=-1)
+    return mu / r_mag**2
+
+
+def j2AccelMag(r, mu=MU_EARTH_JGM2, Re=RE_EARTH_JGM2, J2=J2_JGM2):
+    """r: [...,3] ECI position (km) -> [...,] J2 perturbing acceleration magnitude (km/s^2).
+    Closed form (Curtis, Orbital Mechanics for Engineering Students, Eq. 12.30)."""
+    x, y, z = r[..., 0], r[..., 1], r[..., 2]
+    r_mag = np.linalg.norm(r, axis=-1)
+    zr2 = (z / r_mag) ** 2
+    p = -1.5 * J2 * mu * Re**2 / r_mag**4
+    ax = p * (x / r_mag) * (1 - 5 * zr2)
+    ay = p * (y / r_mag) * (1 - 5 * zr2)
+    az = p * (z / r_mag) * (3 - 5 * zr2)
+    return np.sqrt(ax**2 + ay**2 + az**2)
+
+
+def _legendreZonal(s, n_max):
+    """s: [...] array (= z/r). Returns (P, dP): dicts of {n: [...] array} for n=0..n_max --
+    unnormalized zonal Legendre polynomials and their derivatives w.r.t. s, via the standard
+    recursion Pn = ((2n-1)*s*P[n-1] - (n-1)*P[n-2]) / n."""
+    P = {0: np.ones_like(s), 1: s}
+    dP = {0: np.zeros_like(s), 1: np.ones_like(s)}
+    for n in range(2, n_max + 1):
+        P[n] = ((2 * n - 1) * s * P[n - 1] - (n - 1) * P[n - 2]) / n
+        dP[n] = ((2 * n - 1) * (P[n - 1] + s * dP[n - 1]) - (n - 1) * dP[n - 2]) / n
+    return P, dP
+
+
+def zonalAccelMag(r, degrees, coeffs, mu=MU_EARTH_JGM2, Re=RE_EARTH_JGM2):
+    """r: [...,3] ECI position (km); degrees: iterable of zonal degrees n>=2; coeffs: {n: J_n}.
+    Returns [...,] magnitude of the VECTOR SUM of every requested degree's perturbing
+    acceleration. General order-0 zonal-harmonic closed form, derived from the zonal geopotential
+    U_n(r) = mu*J_n*(Re/r)^n*P_n(s)/r (s = z/r) via a_n = -grad(U_n); algebraically verified to
+    reduce exactly to j2AccelMag's Curtis closed form at n=2."""
+    x, y, z = r[..., 0], r[..., 1], r[..., 2]
+    r_mag = np.linalg.norm(r, axis=-1)
+    s = z / r_mag
+    P, dP = _legendreZonal(s, max(degrees))
+
+    ax = np.zeros_like(r_mag)
+    ay = np.zeros_like(r_mag)
+    az = np.zeros_like(r_mag)
+    for n in degrees:
+        scale = mu * coeffs[n] * Re**n * r_mag ** (-(n + 3))
+        bracket_xy = (n + 1) * P[n] + s * dP[n]
+        ax = ax + scale * x * bracket_xy
+        ay = ay + scale * y * bracket_xy
+        az = az + scale * ((n + 1) * z * P[n] - r_mag * (1 - s**2) * dP[n])
+    return np.sqrt(ax**2 + ay**2 + az**2)
+
+
+def j3to6AccelMag(r, mu=MU_EARTH_JGM2, Re=RE_EARTH_JGM2):
+    """r: [...,3] ECI position (km) -> [...,] combined J3-J6 perturbing acceleration magnitude
+    (km/s^2) -- the magnitude of the vector sum of the J3, J4, J5, J6 accelerations, not the sum
+    of their individual magnitudes."""
+    coeffs = {3: J3_JGM2, 4: J4_JGM2, 5: J5_JGM2, 6: J6_JGM2}
+    return zonalAccelMag(r, (3, 4, 5, 6), coeffs, mu=mu, Re=Re)
+
 
 def jacobiConstant(Y):
     m_1 = 5.974E24  # kg
