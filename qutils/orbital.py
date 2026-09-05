@@ -452,6 +452,17 @@ def j3to6AccelMag(r, mu=MU_EARTH_JGM2, Re=RE_EARTH_JGM2):
     return zonalAccelMag(r, (3, 4, 5, 6), coeffs, mu=mu, Re=Re)
 
 
+def orbitalEnergyJ2(Y, mu=MU_EARTH_JGM2, Re=RE_EARTH_JGM2, J2=J2_JGM2):
+    """Y: [...,6] ECI state (km, km/s) -> [...,] specific energy INCLUDING the J2 potential term:
+
+        E = v^2/2 - mu/r + (mu*J2*Re^2 / (2 r^3)) * (3 (z/r)^2 - 1)"""
+    r_vec = Y[..., 0:3]
+    r = np.linalg.norm(r_vec, axis=-1)
+    v = np.linalg.norm(Y[..., 3:6], axis=-1)
+    sin_lat = r_vec[..., 2] / r
+    return 0.5 * v**2 - mu / r + (mu * J2 * Re**2 / (2.0 * r**3)) * (3.0 * sin_lat**2 - 1.0)
+
+
 def jacobiConstant(Y):
     m_1 = 5.974E24  # kg
     m_2 = 7.348E22 # kg
