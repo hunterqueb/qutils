@@ -453,7 +453,7 @@ def j3to6AccelMag(r, mu=MU_EARTH_JGM2, Re=RE_EARTH_JGM2):
 
 
 def orbitalEnergyJ2(Y, mu=MU_EARTH_JGM2, Re=RE_EARTH_JGM2, J2=J2_JGM2):
-    """Y: [...,6] ECI state (km, km/s) -> [...,] specific energy INCLUDING the J2 potential term:
+    """Y: [...,6] ECI state (km, km/s) -> [...,] orbital energy (km^2/s^2) including J2 perturbation:
 
         E = v^2/2 - mu/r + (mu*J2*Re^2 / (2 r^3)) * (3 (z/r)^2 - 1)"""
     r_vec = Y[..., 0:3]
@@ -461,6 +461,43 @@ def orbitalEnergyJ2(Y, mu=MU_EARTH_JGM2, Re=RE_EARTH_JGM2, J2=J2_JGM2):
     v = np.linalg.norm(Y[..., 3:6], axis=-1)
     sin_lat = r_vec[..., 2] / r
     return 0.5 * v**2 - mu / r + (mu * J2 * Re**2 / (2.0 * r**3)) * (3.0 * sin_lat**2 - 1.0)
+
+
+ZONAL_COEFFS_JGM2 = {2: J2_JGM2, 3: J3_JGM2, 4: J4_JGM2, 5: J5_JGM2, 6: J6_JGM2}
+
+
+def orbitalEnergyZonal(Y, degrees=(2, 3, 4, 5, 6), coeffs=None, mu=MU_EARTH_JGM2, Re=RE_EARTH_JGM2):
+    """Y: [...,6] ECI state (km, km/s) -> [...,] Hamiltonian specific orbital energy (km^2/s^2)
+    including an arbitrary set of zonal-harmonic potential terms:
+
+        E = v^2/2 - mu/r + (mu/r) * sum_n J_n (Re/r)^n P_n(z/r)
+
+    the conserved quantity of the zonally-perturbed problem (exactly conserved for the zonal
+    degrees included, since the zonal geopotential is time-invariant in ECI). Same sign convention
+    as zonalAccelMag's U_n = mu*J_n*(Re/r)^n*P_n(s)/r, of which this is the sum with a = -grad(U).
+
+    degrees: iterable of zonal degrees n>=2 to include; the empty tuple gives the plain Keplerian
+    v^2/2 - mu/r, and (2,) reproduces orbitalEnergyJ2 exactly.
+
+    Rationale for the ladder degrees=() -> (2,) -> (2..6): the time derivative of E under a given
+    truncation measures every acceleration NOT in that truncation. Keplerian dE/dt is therefore
+    dominated by J2 potential exchange, not by any perturbing force; each rung removes one more
+    layer of known conservative dynamics and lowers the floor against which a thrust residual is
+    measured."""
+    if coeffs is None:
+        coeffs = ZONAL_COEFFS_JGM2
+    r_vec = Y[..., 0:3]
+    r = np.linalg.norm(r_vec, axis=-1)
+    v = np.linalg.norm(Y[..., 3:6], axis=-1)
+    E = 0.5 * v**2 - mu / r
+    degrees = tuple(degrees)
+    if not degrees:
+        return E
+    s = r_vec[..., 2] / r
+    P, _ = _legendreZonal(s, max(degrees))
+    for n in degrees:
+        E = E + (mu / r) * coeffs[n] * (Re / r) ** n * P[n]
+    return E
 
 
 def jacobiConstant(Y):
