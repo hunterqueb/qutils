@@ -2,20 +2,26 @@ import pandas as pd
 import numpy as np
 from pkg_resources import resource_filename
 
+# Canonical Earth units. MU_EARTH_JGM2 (JGM2.cof POTFIELD) is defined further down; these
+# are the values used to non-dimensionalize every Earth-orbit state in this package.
+MU_EARTH = 398600.4415        # km^3/s^2
+DU_EARTH = 6378.1             # km
+TU_EARTH = (DU_EARTH ** 3 / MU_EARTH) ** 0.5   # s, 806.8045...
+
 class GMATReport():
     def __init__(self):
         return
 def readGMATReport(filepath,DU=None,TU=None):
     data = np.loadtxt(filepath, skiprows=1,usecols = (1,2,3,4,5,6,7))
     return data
-def dim2NonDim4(array,DU = 6378.1 ,TU = ((6378.1)**3 / 3.96800e5)**0.5):
+def dim2NonDim4(array,DU = DU_EARTH ,TU = TU_EARTH):
 
     array = array / DU
     array[:,2:4] = array[:,2:4] * TU
 
     return array
 
-def dim2NonDim6(array,DU = 6378.1 ,TU = ((6378.1)**3 / 3.96800e5)**0.5):
+def dim2NonDim6(array,DU = DU_EARTH ,TU = TU_EARTH):
 
     array = array / DU
     array[:,3:6] = array[:,3:6] * TU
@@ -23,13 +29,13 @@ def dim2NonDim6(array,DU = 6378.1 ,TU = ((6378.1)**3 / 3.96800e5)**0.5):
     return array
 
 
-def nonDim2Dim4(array,DU = 6378.1 ,TU = 806.80415):
+def nonDim2Dim4(array,DU = DU_EARTH ,TU = TU_EARTH):
     array = array * DU
     array[:,2:4] = array[:,2:4] / TU
 
     return array
 
-def nonDim2Dim6(array,DU = 6378.1 ,TU = 806.80415):
+def nonDim2Dim6(array,DU = DU_EARTH ,TU = TU_EARTH):
     array = array * DU
     array[:,3:6] = array[:,3:6] / TU
 
@@ -366,7 +372,7 @@ def classicOrbitProp(t,OE,mu,eps=1e-10,Nitr=5):
 
 
 
-def orbitalEnergy(Y,mu=396800):
+def orbitalEnergy(Y,mu=MU_EARTH):
     positions = Y[:, 0:3]
     velocities = Y[:, 3:6]
     r = np.linalg.norm(positions, axis=1)

@@ -186,6 +186,10 @@ def transferMamba(pretrainedModel,newModel,trainableLayers = [True,True,True]):
 
     parameters: pretrainedModel - pretrained pytorch mamba model with one state space layer
                 newModel - untrained pytorch mamba model with one state space layer
+
+    NOTE: this is feature-extraction transfer learning, not full fine-tuning. in_proj and
+    A_log stay frozen regardless of trainableLayers; only conv1d, x_proj, dt_proj and
+    (optionally) out_proj are trainable. Use transferModelAll for the full fine-tune path.
     '''
     # deltaBC is calced simultaneously here!
     # model.layers[0].mixer.x_proj.state_dict()
